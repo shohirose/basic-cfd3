@@ -12,17 +12,18 @@ where $\mathbf{U}$ is conservative variable, and $\mathbf{F}$ is flux function. 
 
 $$
 \mathbf{U} = 
-\left[
-\begin{matrix}
-\rho \\ \rho u \\ \rho E
-\end{matrix}
-\right], \quad
+\begin{bmatrix}
+\rho \\
+\rho u \\
+\rho E
+\end{bmatrix}
+, \quad
 \mathbf{F} = 
-\left[
-\begin{matrix}
-\rho u \\ \rho u^2 + p \\ \rho E u + pu
-\end{matrix}
-\right]
+\begin{bmatrix}
+\rho u \\
+\rho u^2 + p \\
+\rho E u + pu
+\end{bmatrix}
 $$
 
 where $p$ is pressure, $u$ is velocity, $E$ is total energy, and $\rho$ is density.
