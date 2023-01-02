@@ -8,21 +8,27 @@
 
 namespace cfd {
 
-class StaggerWarmingRiemannSolver {
+/**
+ * @brief Steger-Warming Riemann solver
+ *
+ * This Riemann solver computes numerical flux using the flux vector splitting
+ * scheme.
+ */
+class StegerWarmingRiemannSolver {
  public:
   /**
-   * @brief Construct a new Stagger Warming Riemann Solver object
+   * @brief Construct a new Steger Warming Riemann Solver object
    *
    * @param gamma Specific heat ratio
    */
-  StaggerWarmingRiemannSolver(double gamma) : gamma_{gamma} {}
+  StegerWarmingRiemannSolver(double gamma) : gamma_{gamma} {}
 
   /**
-   * @brief Construct a new Stagger Warming Riemann Solver object
+   * @brief Construct a new Steger Warming Riemann Solver object
    *
    * @param params Problem parameters
    */
-  StaggerWarmingRiemannSolver(const ProblemParameters& params)
+  StegerWarmingRiemannSolver(const ProblemParameters& params)
       : gamma_{params.specific_heat_ratio} {}
 
   /**

@@ -6,7 +6,7 @@
 
 namespace cfd {
 
-FluxVectors StaggerWarmingRiemannSolver::calc_flux(
+FluxVectors StegerWarmingRiemannSolver::calc_flux(
     const ConservativeVariables& left,
     const ConservativeVariables& right) const noexcept {
   using Eigen::ArrayXd;
@@ -15,7 +15,7 @@ FluxVectors StaggerWarmingRiemannSolver::calc_flux(
   return {fp[0] + fm[0], fp[1] + fm[1], fp[2] + fm[2]};
 }
 
-FluxVectors StaggerWarmingRiemannSolver::calc_positive_flux(
+FluxVectors StegerWarmingRiemannSolver::calc_positive_flux(
     const ConservativeVariables& left) const noexcept {
   using Eigen::ArrayXd;
 
@@ -44,7 +44,7 @@ FluxVectors StaggerWarmingRiemannSolver::calc_positive_flux(
   return f;
 }
 
-FluxVectors StaggerWarmingRiemannSolver::calc_negative_flux(
+FluxVectors StegerWarmingRiemannSolver::calc_negative_flux(
     const ConservativeVariables& right) const noexcept {
   using Eigen::ArrayXd;
 

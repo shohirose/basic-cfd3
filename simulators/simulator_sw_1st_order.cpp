@@ -7,11 +7,11 @@ using Eigen::seqN;
 
 using Simulator =
     cfd::EulerEquationSimulator1d<cfd::FirstOrderSpacialReconstructor,
-                                  cfd::StaggerWarmingRiemannSolver>;
+                                  cfd::StegerWarmingRiemannSolver>;
 
 Simulator make_simulator(const cfd::ProblemParameters& params) {
   return {params, cfd::FirstOrderSpacialReconstructor{params},
-          cfd::StaggerWarmingRiemannSolver{params}};
+          cfd::StegerWarmingRiemannSolver{params}};
 }
 
 cfd::PrimitiveVariables make_initial_condition(
