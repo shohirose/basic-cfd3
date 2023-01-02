@@ -5,19 +5,19 @@ Problems are taken from [1].
 1-D Euler equation is given by
 
 $$
-\frac{\partial \bm{U}}{\partial t} + \frac{\partial \bm{F}}{\partial x} = 0
+\frac{\partial \mathbf{U}}{\partial t} + \frac{\partial \mathbf{F}}{\partial x} = 0
 $$
 
-where $\bm{U}$ is conservative variable, and $\bm{F}$ is flux function. $\bm{U}$ and $\bm{F}$ are given by
+where $\mathbf{U}$ is conservative variable, and $\mathbf{F}$ is flux function. $\mathbf{U}$ and $\mathbf{F}$ are given by
 
 $$
-\bm{U} = 
+\mathbf{U} = 
 \left[
 \begin{matrix}
 \rho \\ \rho u \\ \rho E
 \end{matrix}
 \right], \quad
-\bm{F} = 
+\mathbf{F} = 
 \left[
 \begin{matrix}
 \rho u \\ \rho u^2 + p \\ \rho E u + pu
