@@ -30,3 +30,13 @@
 *.exe
 *.out
 *.app
+
+# CMake
+build/
+
+# VSCode
+.vscode/
+
+# Outputs
+exact_solution/
+result/
