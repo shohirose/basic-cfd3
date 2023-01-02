@@ -45,7 +45,7 @@ $ cmake -S . -B build
 $ cmake --build build
 ```
 
-Please note that the project depends on [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page) and [googletest](https://github.com/google/googletest) libraries, which are automatically downloaded and built by CMake using the `FetchContent` module.
+Please note that the project depends on [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page) library, which is automatically downloaded and built by CMake using the `FetchContent` module.
 
 Then, run all simulators and get results. For Linux,
 
