@@ -8,6 +8,8 @@
 
 namespace cfd {
 
+class NoRiemannSolver {};
+
 /**
  * @brief Steger-Warming Riemann solver
  *

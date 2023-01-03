@@ -2,6 +2,7 @@
 #define CFD_EULER_EQUATION_SIMULATOR_1D_HPP
 
 #include <iostream>
+#include <type_traits>
 
 #include "cfd/boundary_conditions.hpp"
 #include "cfd/functions.hpp"
@@ -10,9 +11,21 @@
 
 namespace cfd {
 
+class NoRiemannSolver;
+class LaxWendroffSpacialReconstructor;
+
 template <typename SpacialReconstructor, typename RiemannSolver>
 class EulerEquationSimulator1d {
  public:
+  static_assert(
+      (std::is_same_v<SpacialReconstructor, LaxWendroffSpacialReconstructor> &&
+       std::is_same_v<RiemannSolver, NoRiemannSolver>) ||
+          !std::is_same_v<SpacialReconstructor,
+                          LaxWendroffSpacialReconstructor> &&
+              !std::is_same_v<RiemannSolver, NoRiemannSolver>,
+      "NoRiemannSolver must be selected only with "
+      "LaxWendroffSpacialReconstructor.");
+
   EulerEquationSimulator1d(const ProblemParameters& params,
                            const SpacialReconstructor& reconstructor,
                            const RiemannSolver& solver)
@@ -47,19 +60,28 @@ class EulerEquationSimulator1d {
       tsteps += 1;
       t += dt;
 
-      const auto left = reconstructor_.calc_left(vars);
-      const auto right = reconstructor_.calc_right(vars);
-      const auto f = solver_.calc_flux(left, right);
-      integrator_.update(vars, f, dt);
-      boundary_.apply(vars);
-
-      // std::cout << vars.density << std::endl;
+      if constexpr (is_lax_wendroff()) {
+        const auto f = reconstructor_.calc_flux(vars, dt);
+        integrator_.update(vars, f, dt);
+        boundary_.apply(vars);
+      } else {
+        const auto left = reconstructor_.calc_left(vars);
+        const auto right = reconstructor_.calc_right(vars);
+        const auto f = solver_.calc_flux(left, right);
+        integrator_.update(vars, f, dt);
+        boundary_.apply(vars);
+      }
     }
 
     return to_primitive_vars(vars, gamma_);
   }
 
  private:
+  static constexpr bool is_lax_wendroff() {
+    return std::is_same_v<SpacialReconstructor,
+                          LaxWendroffSpacialReconstructor>;
+  }
+
   int total_cells() const noexcept {
     return 2 * n_boundary_cells_ + n_domain_cells_;
   }
@@ -72,7 +94,6 @@ class EulerEquationSimulator1d {
         calc_pressure(vars.momentum, vars.density, vars.total_energy, gamma_);
     const ArrayXd c = calc_sonic_velocity(p, vars.density, gamma_);
 
-    // const auto domain = Eigen::seqN(n_boundary_cells_, n_domain_cells_);
     const auto up = (u + c).abs().maxCoeff();
     const auto um = (u - c).abs().maxCoeff();
     return (cfl_number_ * dx_) / std::max({up, um, 0.1});

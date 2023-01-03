@@ -57,4 +57,5 @@ endfunction()
 
 add_simulator(simulator_sw_1st_order)
 add_simulator(simulator_roe_1st_order)
+add_simulator(simulator_lax_wendroff)
 add_simulator(simulator_exact)
