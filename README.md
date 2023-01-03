@@ -30,7 +30,8 @@ where $p$ is pressure, $u$ is velocity, $E$ is total energy, and $\rho$ is densi
 
 The problem is solved by using the finie difference method. The following Riemann solvers are implemented:
 
-- Steger-Warming Riemann Solver (Flux vector splitting scheme)
+- Steger-Warming Riemann solver (Flux vector splitting scheme)
+- Roe Riemann solver (Flux difference splitting scheme)
 
 For time integration, the explicit Euler scheme is used. No-flow boundary condition is imposed for left and right boundaries.
 
