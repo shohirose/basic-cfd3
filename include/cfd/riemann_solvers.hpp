@@ -63,6 +63,20 @@ class StegerWarmingRiemannSolver {
   double gamma_;  ///> Specific heat ratio
 };
 
+class RoeRiemannSolver {
+ public:
+  RoeRiemannSolver(double gamma) : gamma_{gamma} {}
+
+  RoeRiemannSolver(const ProblemParameters& params)
+      : gamma_{params.specific_heat_ratio} {}
+
+  FluxVectors calc_flux(const ConservativeVariables& left,
+                        const ConservativeVariables& right) const noexcept;
+
+ private:
+  double gamma_;  ///> Specific heat ratio
+};
+
 }  // namespace cfd
 
 #endif  // CFD_RIEMANN_SOLVERS_HPP

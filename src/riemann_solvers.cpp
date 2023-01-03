@@ -73,4 +73,61 @@ FluxVectors StegerWarmingRiemannSolver::calc_negative_flux(
   return f;
 }
 
+FluxVectors RoeRiemannSolver::calc_flux(
+    const ConservativeVariables& left,
+    const ConservativeVariables& right) const noexcept {
+  using Eigen::ArrayXd;
+  const auto& rhol = left.density;
+  const auto& rhor = right.density;
+  const ArrayXd rhol_sqrt = rhol.sqrt();
+  const ArrayXd rhor_sqrt = rhor.sqrt();
+  const ArrayXd rho_m = rhol_sqrt * rhor_sqrt;
+
+  const ArrayXd ul = calc_velocity(left.momentum, left.density);
+  const ArrayXd ur = calc_velocity(right.momentum, right.density);
+  const ArrayXd u_m =
+      (ul * rhol_sqrt + ur * rhor_sqrt) / (rhol_sqrt + rhor_sqrt);
+
+  const ArrayXd pl =
+      calc_pressure(left.momentum, left.density, left.total_energy, gamma_);
+  const ArrayXd pr =
+      calc_pressure(right.momentum, right.density, right.total_energy, gamma_);
+
+  const auto& el = left.total_energy;
+  const auto& er = right.total_energy;
+  const ArrayXd hl = calc_total_enthalpy(pl, rhol, el);
+  const ArrayXd hr = calc_total_enthalpy(pr, rhor, er);
+  const ArrayXd h_m =
+      (hl * rhol_sqrt + hr * rhor_sqrt) / (rhol_sqrt + rhor_sqrt);
+  const ArrayXd c_m = ((gamma_ - 1) * (h_m - 0.5 * u_m.square())).sqrt();
+
+  const ArrayXd up = u_m + c_m;
+  const ArrayXd um = u_m - c_m;
+  constexpr double eps = 0.15;
+  const ArrayXd lambda1 = u_m.abs().unaryExpr(
+      [eps](double x) { return x > 2 * eps ? x : (x * x / (4 * eps) + eps); });
+  const ArrayXd lambda2 = up.abs().unaryExpr(
+      [eps](double x) { return x > 2 * eps ? x : (x * x / (4 * eps) + eps); });
+  const ArrayXd lambda3 = um.abs().unaryExpr(
+      [eps](double x) { return x > 2 * eps ? x : (x * x / (4 * eps) + eps); });
+
+  const ArrayXd dw1 = rhor - rhol - (pr - pl) / (c_m.square());
+  const ArrayXd dw2 = ur - ul + (pr - pl) / (rho_m * c_m);
+  const ArrayXd dw3 = ur - ul - (pr - pl) / (rho_m * c_m);
+  const ArrayXd a1 = rho_m / (2 * c_m);
+
+  FluxVectors f;
+  f[0] = 0.5 * ((rhol * ul + rhor * ur) -
+                (lambda1 * dw1 + a1 * (lambda2 * dw2 - lambda3 * dw3)));
+  f[1] =
+      0.5 *
+      (rhol * ul.square() + pl + rhor * ur.square() + pr -
+       (lambda1 * dw1 * u_m + a1 * (lambda2 * dw2 * up - lambda3 * dw3 * um)));
+  f[2] = 0.5 * (el * ul + pl * ul + er * ur + pr * ur -
+                (0.5 * lambda1 * dw1 * u_m.square() +
+                 a1 * (lambda2 * dw2 * (h_m + c_m * u_m) -
+                       lambda3 * dw3 * (h_m - c_m * u_m))));
+  return f;
+}
+
 }  // namespace cfd
