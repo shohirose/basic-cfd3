@@ -33,6 +33,8 @@ The problem is solved by using the finie difference method. The following Rieman
 - Steger-Warming Riemann solver (Flux vector splitting scheme)
 - Roe Riemann solver (Flux difference splitting scheme)
 
+In adittion, Lax-Wendroff scheme is implemented.
+
 For time integration, the explicit Euler scheme is used. No-flow boundary condition is imposed for left and right boundaries.
 
 Please refer to [1] for the details of each scheme.
