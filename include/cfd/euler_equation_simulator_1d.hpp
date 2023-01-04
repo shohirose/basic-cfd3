@@ -11,9 +11,16 @@
 
 namespace cfd {
 
+// Forward declaration
 class NoRiemannSolver;
 class LaxWendroffSpacialReconstructor;
 
+/**
+ * @brief 1-D Euler equation simulator.
+ *
+ * @tparam SpacialReconstructor Spacial reconstruction scheme
+ * @tparam RiemannSolver Riemann solver
+ */
 template <typename SpacialReconstructor, typename RiemannSolver>
 class EulerEquationSimulator1d {
  public:
@@ -40,6 +47,24 @@ class EulerEquationSimulator1d {
         solver_{solver},
         integrator_{params} {}
 
+  /**
+   * @brief Run a simulation case.
+   *
+   * @tparam Derived
+   * @param V Primitive variables vector at the initial condition.
+   * @return Eigen::MatrixXd Primitive Variables vector at the end of time
+   * steps.
+   *
+   * Primitive variables vector is defined by
+   * @f[
+   * \mathbf{V} =
+   * \begin{bmatrix}
+   * \rho \\ u \\ p
+   * \end{bmatrix}
+   * where @f$ \rho @f$ is density, @f$ u @f$ is velocity, and @f$ p @f$ is
+   * pressure.
+   * @f]
+   */
   template <typename Derived>
   Eigen::MatrixXd run(const Eigen::DenseBase<Derived>& V) const noexcept {
     assert(V.rows() this->total_cells());
@@ -100,16 +125,16 @@ class EulerEquationSimulator1d {
     return (cfl_number_ * dx_) / std::max({up, um, 0.1});
   }
 
-  double dx_;
-  double gamma_;
-  double tend_;
-  double cfl_number_;
-  int n_boundary_cells_;
-  int n_domain_cells_;
-  NoFlowBoundary boundary_;
-  SpacialReconstructor reconstructor_;
-  RiemannSolver solver_;
-  ExplicitEulerScheme integrator_;
+  double dx_;                           ///> Grid length
+  double gamma_;                        ///> Specific heat ratio
+  double tend_;                         ///> End time of a simulation
+  double cfl_number_;                   ///> CFL number
+  int n_boundary_cells_;                ///> Number of boundary cells
+  int n_domain_cells_;                  ///> Number of domain cells
+  NoFlowBoundary boundary_;             ///> Boundary condition
+  SpacialReconstructor reconstructor_;  ///> Spacial reconstruction scheme
+  RiemannSolver solver_;                ///> Riemann solver
+  ExplicitEulerScheme integrator_;      ///> Time integration scheme
 };
 
 template <typename SpacialReconstructor, typename RiemannSolver>
