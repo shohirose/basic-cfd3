@@ -182,7 +182,7 @@ class RoeRiemannSolver {
         this->calc_characteristic_velocities(u_m, up, um);
     const auto [dw1, dw2, dw3] =
         this->calc_dw(rhol, rhor, pl, pr, ul, ur, rho_m, c_m, u_m);
-    const auto [W1, W2, W3] = this->calc_r(u_m, h_m, c_m, up, um);
+    const auto [r1, r2, r3] = this->calc_r(u_m, h_m, c_m, up, um);
 
     const ArrayXd el = Ul.col(2).array();
     const ArrayXd er = Ur.col(2).array();
@@ -190,11 +190,11 @@ class RoeRiemannSolver {
     const auto Fr = this->calc_flux(ur, rhor, pr, er);
 
     const MatrixXd dF1 =
-        (ld1.cwiseProduct(dw1)).replicate<1, 3>().cwiseProduct(W1);
+        (ld1.cwiseProduct(dw1)).replicate<1, 3>().cwiseProduct(r1);
     const MatrixXd dF2 =
-        (ld2.cwiseProduct(dw2)).replicate<1, 3>().cwiseProduct(W2);
+        (ld2.cwiseProduct(dw2)).replicate<1, 3>().cwiseProduct(r2);
     const MatrixXd dF3 =
-        (ld3.cwiseProduct(dw3)).replicate<1, 3>().cwiseProduct(W3);
+        (ld3.cwiseProduct(dw3)).replicate<1, 3>().cwiseProduct(r3);
 
     return 0.5 * ((Fl + Fr) - (dF1 + dF2 + dF3));
   }
@@ -273,22 +273,22 @@ class RoeRiemannSolver {
       const Eigen::ArrayXd& um) const noexcept {
     using Eigen::MatrixXd, std::move;
 
-    MatrixXd W1(u_m.size(), 3);
-    W1.col(0).array() = 1.0;
-    W1.col(1) = u_m.matrix();
-    W1.col(2) = (0.5 * u_m.square()).matrix();
+    MatrixXd r1(u_m.size(), 3);
+    r1.col(0).array() = 1.0;
+    r1.col(1) = u_m.matrix();
+    r1.col(2) = (0.5 * u_m.square()).matrix();
 
-    MatrixXd W2(u_m.size(), 3);
-    W2.col(0).array() = 1.0;
-    W2.col(1) = up.matrix();
-    W2.col(2) = (h_m + c_m * u_m).matrix();
+    MatrixXd r2(u_m.size(), 3);
+    r2.col(0).array() = 1.0;
+    r2.col(1) = up.matrix();
+    r2.col(2) = (h_m + c_m * u_m).matrix();
 
-    MatrixXd W3(u_m.size(), 3);
-    W3.col(0).array() = 1.0;
-    W3.col(1) = um.matrix();
-    W3.col(2) = (h_m - c_m * u_m).matrix();
+    MatrixXd r3(u_m.size(), 3);
+    r3.col(0).array() = 1.0;
+    r3.col(1) = um.matrix();
+    r3.col(2) = (h_m - c_m * u_m).matrix();
 
-    return std::make_tuple(move(W1), move(W2), move(W3));
+    return std::make_tuple(move(r1), move(r2), move(r3));
   }
 
   double gamma_;  ///> Specific heat ratio
