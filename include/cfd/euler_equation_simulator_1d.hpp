@@ -46,7 +46,7 @@ class EulerEquationSimulator1d {
     assert(V.cols() == 3);
     using Eigen::MatrixXd;
 
-    MatrixXd U = to_conservative_vars(V, gamma_);
+    MatrixXd U = to_conservation_vars(V, gamma_);
     boundary_.apply(U);
 
     double t = 0.0;
