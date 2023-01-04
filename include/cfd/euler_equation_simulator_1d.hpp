@@ -66,7 +66,7 @@ class EulerEquationSimulator1d {
    * @f]
    */
   template <typename Derived>
-  Eigen::MatrixXd run(const Eigen::DenseBase<Derived>& V) const noexcept {
+  Eigen::MatrixXd run(const Eigen::MatrixBase<Derived>& V) const noexcept {
     assert(V.rows() this->total_cells());
     assert(V.cols() == 3);
     using Eigen::MatrixXd;

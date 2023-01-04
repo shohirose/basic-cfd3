@@ -73,10 +73,9 @@ class StegerWarmingRiemannSolver {
       const Eigen::MatrixBase<Derived>& Ul) const noexcept {
     using Eigen::ArrayXd, Eigen::MatrixXd;
 
-    const ArrayXd u = calc_velocity(Ul.col(1).array(), Ul.col(0).array());
-    const ArrayXd p = calc_pressure(Ul.col(1).array(), Ul.col(0).array(),
-                                    Ul.col(2).array(), gamma_);
-    const ArrayXd c = calc_sonic_velocity(p, Ul.col(0).array(), gamma_);
+    const ArrayXd u = array_api::velocity(Ul);
+    const ArrayXd p = array_api::pressure(Ul, gamma_);
+    const ArrayXd c = array_api::sonic_velocity(p, Ul.col(0).array(), gamma_);
     const ArrayXd up = u + c;
     const ArrayXd um = u - c;
     const ArrayXd lambda1 = u.max(0.0);
@@ -108,10 +107,9 @@ class StegerWarmingRiemannSolver {
       const Eigen::MatrixBase<Derived>& Ur) const noexcept {
     using Eigen::ArrayXd, Eigen::MatrixXd;
 
-    const ArrayXd u = calc_velocity(Ur.col(1).array(), Ur.col(0).array());
-    const ArrayXd p = calc_pressure(Ur.col(1).array(), Ur.col(0).array(),
-                                    Ur.col(2).array(), gamma_);
-    const ArrayXd c = calc_sonic_velocity(p, Ur.col(0).array(), gamma_);
+    const ArrayXd u = array_api::velocity(Ur);
+    const ArrayXd p = array_api::pressure(Ur, gamma_);
+    const ArrayXd c = array_api::sonic_velocity(p, Ur.col(0).array(), gamma_);
     const ArrayXd up = u + c;
     const ArrayXd um = u - c;
     const ArrayXd lambda1 = u.min(0.0);
@@ -178,20 +176,11 @@ class RoeRiemannSolver {
     const ArrayXd rhor_sqrt = Ur.col(0).array().sqrt();
     const ArrayXd rho_m = rhol_sqrt * rhor_sqrt;
 
-    const ArrayXd ul = calc_velocity(Ul.col(1).array(), Ul.col(0).array());
-    const ArrayXd ur = calc_velocity(Ur.col(1).array(), Ur.col(0).array());
+    const auto [ul, pl, hl] = array_api::to_primitive_vars(Ul, gamma_);
+    const auto [ur, pr, hr] = array_api::to_primitive_vars(Ur, gamma_);
+
     const ArrayXd u_m =
         (ul * rhol_sqrt + ur * rhor_sqrt) / (rhol_sqrt + rhor_sqrt);
-
-    const ArrayXd pl = calc_pressure(Ul.col(1).array(), Ul.col(0).array(),
-                                     Ul.col(2).array(), gamma_);
-    const ArrayXd pr = calc_pressure(Ur.col(1).array(), Ur.col(0).array(),
-                                     Ur.col(2).array(), gamma_);
-
-    const ArrayXd hl =
-        calc_total_enthalpy(pl, Ul.col(0).array(), Ul.col(2).array());
-    const ArrayXd hr =
-        calc_total_enthalpy(pr, Ur.col(0).array(), Ur.col(2).array());
     const ArrayXd h_m =
         (hl * rhol_sqrt + hr * rhor_sqrt) / (rhol_sqrt + rhor_sqrt);
     const ArrayXd c_m = ((gamma_ - 1) * (h_m - 0.5 * u_m.square())).sqrt();
