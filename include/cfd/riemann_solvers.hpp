@@ -2,6 +2,7 @@
 #define CFD_RIEMANN_SOLVERS_HPP
 
 #include <Eigen/Core>
+#include <tuple>
 
 #include "cfd/problem_parameters.hpp"
 
@@ -168,57 +169,128 @@ class RoeRiemannSolver {
       const Eigen::MatrixBase<Derived2>& Ur) const noexcept {
     using Eigen::ArrayXd, Eigen::MatrixXd;
 
-    const ArrayXd rhol_sqrt = Ul.col(0).array().sqrt();
-    const ArrayXd rhor_sqrt = Ur.col(0).array().sqrt();
-    const ArrayXd rho_m = rhol_sqrt * rhor_sqrt;
-
     const auto [ul, pl, hl] = calc_velocity_pressure_enthalpy(Ul, gamma_);
     const auto [ur, pr, hr] = calc_velocity_pressure_enthalpy(Ur, gamma_);
-
-    const ArrayXd u_m =
-        (ul * rhol_sqrt + ur * rhor_sqrt) / (rhol_sqrt + rhor_sqrt);
-    const ArrayXd h_m =
-        (hl * rhol_sqrt + hr * rhor_sqrt) / (rhol_sqrt + rhor_sqrt);
-    const ArrayXd c_m = ((gamma_ - 1) * (h_m - 0.5 * u_m.square())).sqrt();
+    const ArrayXd rhol = Ul.col(0).array();
+    const ArrayXd rhor = Ur.col(0).array();
+    const auto [rho_m, u_m, h_m, c_m] =
+        this->calc_average_properties(rhol, rhor, ul, ur, hl, hr);
 
     const ArrayXd up = u_m + c_m;
     const ArrayXd um = u_m - c_m;
-    constexpr double eps = 0.15;
-    const ArrayXd lambda1 = u_m.abs().unaryExpr([eps](double x) {
-      return x > 2 * eps ? x : (x * x / (4 * eps) + eps);
-    });
-    const ArrayXd lambda2 = up.abs().unaryExpr([eps](double x) {
-      return x > 2 * eps ? x : (x * x / (4 * eps) + eps);
-    });
-    const ArrayXd lambda3 = um.abs().unaryExpr([eps](double x) {
-      return x > 2 * eps ? x : (x * x / (4 * eps) + eps);
-    });
+    const auto [ld1, ld2, ld3] =
+        this->calc_characteristic_velocities(u_m, up, um);
+    const auto [dw1, dw2, dw3] =
+        this->calc_dw(rhol, rhor, pl, pr, ul, ur, rho_m, c_m, u_m);
+    const auto [W1, W2, W3] = this->calc_r(u_m, h_m, c_m, up, um);
 
-    const ArrayXd dw1 =
-        Ur.col(0).array() - Ul.col(0).array() - (pr - pl) / (c_m.square());
-    const ArrayXd dw2 = ur - ul + (pr - pl) / (rho_m * c_m);
-    const ArrayXd dw3 = ur - ul - (pr - pl) / (rho_m * c_m);
-    const ArrayXd a1 = rho_m / (2 * c_m);
+    const ArrayXd el = Ul.col(2).array();
+    const ArrayXd er = Ur.col(2).array();
+    const auto Fl = this->calc_flux(ul, rhol, pl, el);
+    const auto Fr = this->calc_flux(ur, rhor, pr, er);
 
-    MatrixXd F(Ul.rows(), 3);
-    F.col(0) = 0.5 * ((Ul.col(0).array() * ul + Ur.col(0).array() * ur) -
-                      (lambda1 * dw1 + a1 * (lambda2 * dw2 - lambda3 * dw3)))
-                         .matrix();
-    F.col(1) =
-        0.5 *
-        (Ul.col(0).array() * ul.square() + pl +
-         Ur.col(0).array() * ur.square() + pr -
-         (lambda1 * dw1 * u_m + a1 * (lambda2 * dw2 * up - lambda3 * dw3 * um)))
-            .matrix();
-    F.col(2) =
-        0.5 * ((Ul.col(2).array() + pl) * ul + (Ur.col(2).array() + pr) * ur -
-               (0.5 * lambda1 * dw1 * u_m.square() +
-                a1 * (lambda2 * dw2 * (h_m + c_m * u_m) -
-                      lambda3 * dw3 * (h_m - c_m * u_m))));
-    return F;
+    const MatrixXd dF1 =
+        (ld1.cwiseProduct(dw1)).replicate<1, 3>().cwiseProduct(W1);
+    const MatrixXd dF2 =
+        (ld2.cwiseProduct(dw2)).replicate<1, 3>().cwiseProduct(W2);
+    const MatrixXd dF3 =
+        (ld3.cwiseProduct(dw3)).replicate<1, 3>().cwiseProduct(W3);
+
+    return 0.5 * ((Fl + Fr) - (dF1 + dF2 + dF3));
   }
 
  private:
+  std::tuple<Eigen::ArrayXd, Eigen::ArrayXd, Eigen::ArrayXd, Eigen::ArrayXd>
+  calc_average_properties(const Eigen::ArrayXd& rhol,
+                          const Eigen::ArrayXd& rhor, const Eigen::ArrayXd& ul,
+                          const Eigen::ArrayXd& ur, const Eigen::ArrayXd& hl,
+                          const Eigen::ArrayXd& hr) const noexcept {
+    using Eigen::ArrayXd, std::move;
+    const ArrayXd rhol_sqrt = rhol.sqrt();
+    const ArrayXd rhor_sqrt = rhor.sqrt();
+    const ArrayXd rho = rhol_sqrt * rhor_sqrt;
+    const ArrayXd u =
+        (ul * rhol_sqrt + ur * rhor_sqrt) / (rhol_sqrt + rhor_sqrt);
+    const ArrayXd h =
+        (hl * rhol_sqrt + hr * rhor_sqrt) / (rhol_sqrt + rhor_sqrt);
+    const ArrayXd c = ((gamma_ - 1) * (h - 0.5 * u.square())).sqrt();
+    return std::make_tuple(move(rho), move(u), move(h), move(c));
+  }
+
+  std::tuple<Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd>
+  calc_characteristic_velocities(const Eigen::ArrayXd& u,
+                                 const Eigen::ArrayXd& up,
+                                 const Eigen::ArrayXd& um) const noexcept {
+    using Eigen::VectorXd, std::move;
+    constexpr double eps = 0.15;
+    const VectorXd lambda1 = u.abs().matrix().unaryExpr([eps](double x) {
+      return (x > 2 * eps) ? x : (x * x / (4 * eps) + eps);
+    });
+    const VectorXd lambda2 = up.abs().matrix().unaryExpr([eps](double x) {
+      return (x > 2 * eps) ? x : (x * x / (4 * eps) + eps);
+    });
+    const VectorXd lambda3 = um.abs().matrix().unaryExpr([eps](double x) {
+      return (x > 2 * eps) ? x : (x * x / (4 * eps) + eps);
+    });
+    return std::make_tuple(move(lambda1), move(lambda2), move(lambda3));
+  }
+
+  Eigen::MatrixXd calc_flux(const Eigen::ArrayXd& u, const Eigen::ArrayXd& rho,
+                            const Eigen::ArrayXd& p,
+                            const Eigen::ArrayXd& e) const noexcept {
+    Eigen::MatrixXd F(u.size(), 3);
+    F.col(0) = (rho * u).matrix();
+    F.col(1) = (rho * u.square() + p).matrix();
+    F.col(2) = ((e + p) * u).matrix();
+    return F;
+  }
+
+  /**
+   * @brief Compute characteristic variables
+   */
+  std::tuple<Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd> calc_dw(
+      const Eigen::ArrayXd& rhol, const Eigen::ArrayXd& rhor,
+      const Eigen::ArrayXd& pl, const Eigen::ArrayXd& pr,
+      const Eigen::ArrayXd& ul, const Eigen::ArrayXd& ur,
+      const Eigen::ArrayXd& rho_m, const Eigen::ArrayXd& c_m,
+      const Eigen::ArrayXd& u_m) const noexcept {
+    using Eigen::VectorXd, Eigen::ArrayXd, std::move;
+    const ArrayXd dp = pr - pl;
+    const VectorXd dw1 = (rhor - rhol - dp / (c_m.square())).matrix();
+    const ArrayXd a = rho_m / (2 * c_m);
+    const ArrayXd du = ur - ul;
+    const VectorXd dw2 = (a * (du + dp / (rho_m * c_m))).matrix();
+    const VectorXd dw3 = (-a * (du - dp / (rho_m * c_m))).matrix();
+    return std::make_tuple(move(dw1), move(dw2), move(dw3));
+  }
+
+  /**
+   * @brief Compute eigenvectors
+   */
+  std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> calc_r(
+      const Eigen::ArrayXd& u_m, const Eigen::ArrayXd& h_m,
+      const Eigen::ArrayXd& c_m, const Eigen::ArrayXd& up,
+      const Eigen::ArrayXd& um) const noexcept {
+    using Eigen::MatrixXd, std::move;
+
+    MatrixXd W1(u_m.size(), 3);
+    W1.col(0).array() = 1.0;
+    W1.col(1) = u_m.matrix();
+    W1.col(2) = (0.5 * u_m.square()).matrix();
+
+    MatrixXd W2(u_m.size(), 3);
+    W2.col(0).array() = 1.0;
+    W2.col(1) = up.matrix();
+    W2.col(2) = (h_m + c_m * u_m).matrix();
+
+    MatrixXd W3(u_m.size(), 3);
+    W3.col(0).array() = 1.0;
+    W3.col(1) = um.matrix();
+    W3.col(2) = (h_m - c_m * u_m).matrix();
+
+    return std::make_tuple(move(W1), move(W2), move(W3));
+  }
+
   double gamma_;  ///> Specific heat ratio
 };
 
