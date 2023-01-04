@@ -52,6 +52,30 @@ Eigen::ArrayXd calc_total_enthalpy(
   return (total_energy_density + pressure) / density;
 }
 
+template <typename Derived>
+Eigen::MatrixXd to_primitive_vars(const Eigen::DenseBase<Derived>& U,
+                                  double gamma) noexcept {
+  Eigen::MatrixXd V(U.rows(), 3);
+  V.col(0) = U.col(0);
+  V.col(1) = calc_velocity(U.col(1).array(), U.col(0).array());
+  V.col(2) =
+      calc_pressure(U.col(1).array(), U.col(0).array(), U.col(2).array(), gamma)
+          .matrix();
+  return V;
+}
+
+template <typename Derived>
+Eigen::MatrixXd to_conservative_vars(const Eigen::DenseBase<Derived>& V,
+                                     double gamma) noexcept {
+  Eigen::MatrixXd U(V.rows(), 3);
+  U.col(0) = V.col(0);
+  U.col(1) = calc_momentum_density(V.col(0).array(), V.col(1).array()).matrix();
+  U.col(2) = calc_total_energy_density(V.col(2).array(), V.col(1).array(),
+                                       V.col(0).array(), gamma)
+                 .matrix();
+  return U;
+}
+
 }  // namespace cfd
 
 #endif  // CFD_FUNCTIONS_HPP

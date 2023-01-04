@@ -114,10 +114,10 @@ int main(int argc, char** argv) {
   }
 
   cfd::TextFileWriter writer(fs::path("exact_solution"));
-  writer.write(x, "x.txt");
-  writer.write(rho, "rho.txt");
-  writer.write(u, "u.txt");
-  writer.write(p, "p.txt");
+  writer.write(x.matrix(), "x.txt");
+  writer.write(rho.matrix(), "rho.txt");
+  writer.write(u.matrix(), "u.txt");
+  writer.write(p.matrix(), "p.txt");
 }
 
 double fun(double p21, double pL, double uL, double rhoL, double cL, double pR,

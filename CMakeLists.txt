@@ -23,21 +23,16 @@ FetchContent_MakeAvailable(Eigen)
 project(basic-cfd3 CXX)
 
 add_library(cfd
-        src/boundary_conditions.cpp
-        src/riemann_solvers.cpp
-        src/spacial_reconstruction_schemes.cpp
-        src/time_integration_schemes.cpp
-        src/variables.cpp
-        src/text_file_writer.cpp
+    INTERFACE
     )
-target_include_directories(cfd PUBLIC include/)
+target_include_directories(cfd INTERFACE include/)
 target_link_libraries(cfd
-    PUBLIC
+    INTERFACE
         Eigen3::Eigen
     )
-target_compile_features(cfd PUBLIC cxx_std_17)
+target_compile_features(cfd INTERFACE cxx_std_17)
 target_compile_options(cfd
-    PUBLIC
+    INTERFACE
         $<$<CXX_COMPILER_ID:GNU>:-Wall -Wextra -Wpedantic>
         $<$<CXX_COMPILER_ID:Clang>:-Wall -Wextra -Wpedantic>
         $<$<CXX_COMPILER_ID:MSVC>:/W3>

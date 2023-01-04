@@ -40,20 +40,20 @@ class EulerEquationSimulator1d {
         solver_{solver},
         integrator_{params} {}
 
-  PrimitiveVariables run(const PrimitiveVariables& pvars) const noexcept {
-    assert(pvars.velocity.size() == this->total_cells());
-    assert(pvars.density.size() == this->total_cells());
-    assert(pvars.pressure.size() == this->total_cells());
-    using Eigen::ArrayXd;
+  template <typename Derived>
+  Eigen::MatrixXd run(const Eigen::DenseBase<Derived>& V) const noexcept {
+    assert(V.rows() this->total_cells());
+    assert(V.cols() == 3);
+    using Eigen::MatrixXd;
 
-    auto vars = to_conservative_vars(pvars, gamma_);
-    boundary_.apply(vars);
+    MatrixXd U = to_conservative_vars(V, gamma_);
+    boundary_.apply(U);
 
     double t = 0.0;
     int tsteps = 0;
 
     while (t < tend_) {
-      auto dt = this->calc_timestep_length(vars);
+      auto dt = this->calc_timestep_length(U);
       if (t + dt > tend_) {
         dt = tend_ - t;
       }
@@ -61,19 +61,19 @@ class EulerEquationSimulator1d {
       t += dt;
 
       if constexpr (is_lax_wendroff()) {
-        const auto f = reconstructor_.calc_flux(vars, dt);
-        integrator_.update(vars, f, dt);
-        boundary_.apply(vars);
+        const auto F = reconstructor_.calc_flux(U, dt);
+        integrator_.update(U, F, dt);
+        boundary_.apply(U);
       } else {
-        const auto left = reconstructor_.calc_left(vars);
-        const auto right = reconstructor_.calc_right(vars);
-        const auto f = solver_.calc_flux(left, right);
-        integrator_.update(vars, f, dt);
-        boundary_.apply(vars);
+        const auto Ul = reconstructor_.calc_left(U);
+        const auto Ur = reconstructor_.calc_right(U);
+        const auto F = solver_.calc_flux(Ul, Ur);
+        integrator_.update(U, F, dt);
+        boundary_.apply(U);
       }
     }
 
-    return to_primitive_vars(vars, gamma_);
+    return to_primitive_vars(U, gamma_);
   }
 
  private:
@@ -86,13 +86,14 @@ class EulerEquationSimulator1d {
     return 2 * n_boundary_cells_ + n_domain_cells_;
   }
 
+  template <typename Derived>
   double calc_timestep_length(
-      const ConservativeVariables& vars) const noexcept {
+      const Eigen::DenseBase<Derived>& U) const noexcept {
     using Eigen::ArrayXd;
-    const ArrayXd u = calc_velocity(vars.momentum, vars.density);
-    const ArrayXd p =
-        calc_pressure(vars.momentum, vars.density, vars.total_energy, gamma_);
-    const ArrayXd c = calc_sonic_velocity(p, vars.density, gamma_);
+    const ArrayXd u = calc_velocity(U.col(1).array(), U.col(0).array());
+    const ArrayXd p = calc_pressure(U.col(1).array(), U.col(0).array(),
+                                    U.col(2).array(), gamma_);
+    const ArrayXd c = calc_sonic_velocity(p, U.col(0).array(), gamma_);
 
     const auto up = (u + c).abs().maxCoeff();
     const auto um = (u - c).abs().maxCoeff();

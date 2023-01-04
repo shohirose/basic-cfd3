@@ -4,7 +4,6 @@
 #include <Eigen/Core>
 
 #include "cfd/problem_parameters.hpp"
-#include "cfd/variables.hpp"
 
 namespace cfd {
 
@@ -17,7 +16,29 @@ class NoFlowBoundary {
       : n_boundary_cells_{params.n_bounary_cells},
         n_domain_cells_{params.n_domain_cells} {}
 
-  void apply(ConservativeVariables& vars) const noexcept;
+  /**
+   * @brief Impose no-flow boundary condition
+   *
+   * @tparam Derived
+   * @param U Conservation variables vector
+   *
+   * U has a shape of (n_total_cells, 3). Each column contains density, moment
+   * density, and total energy density, respectively.
+   *
+   * U(:, 0) = density
+   * U(:, 1) = moment density
+   * U(:, 2) = total energy density
+   */
+  template <typename Derived>
+  void apply(Eigen::MatrixBase<Derived>& U) const noexcept {
+    using Eigen::seqN, Eigen::all;
+    const auto n = n_boundary_cells_;
+    const auto j = n_boundary_cells_ + n_domain_cells_;
+    for (int i = 0; i < 3; ++i) {
+      U(seqN(0, n), i).array() = U(n, i);
+      U(seqN(j, n), i).array() = U(j - 1, i);
+    }
+  }
 
  private:
   int n_boundary_cells_;

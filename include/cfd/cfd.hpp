@@ -9,6 +9,5 @@
 #include "cfd/spacial_reconstruction_schemes.hpp"
 #include "cfd/text_file_writer.hpp"
 #include "cfd/time_integration_schemes.hpp"
-#include "cfd/variables.hpp"
 
 #endif  // CFD_CFD_HPP
