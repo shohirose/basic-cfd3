@@ -111,9 +111,16 @@ class EulerEquationSimulator1d {
     return 2 * n_boundary_cells_ + n_domain_cells_;
   }
 
+  /**
+   * @brief Compute time step length based on CFL number.
+   *
+   * @tparam Derived
+   * @param U Conservation variables vector
+   * @return double Time step length
+   */
   template <typename Derived>
   double calc_timestep_length(
-      const Eigen::DenseBase<Derived>& U) const noexcept {
+      const Eigen::MatrixBase<Derived>& U) const noexcept {
     using Eigen::ArrayXd;
     const ArrayXd u = calc_velocity(U.col(1).array(), U.col(0).array());
     const ArrayXd p = calc_pressure(U.col(1).array(), U.col(0).array(),
