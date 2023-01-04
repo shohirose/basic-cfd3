@@ -6,100 +6,6 @@
 
 namespace cfd {
 
-namespace matrix_api {
-
-/**
- * @brief Compute primitive variables (velocity, pressure, total enthalpy)
- *
- * @tparam Derived
- * @param U Conservation variables vector
- * @param specific_heat_ratio Specific heat ratio
- * @return std::tuple<Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd>
- * velocity, pressure, and total enthalpy
- */
-template <typename Derived>
-std::tuple<Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd> to_primitive_vars(
-    const Eigen::MatrixBase<Derived>& U, double specific_heat_ratio) noexcept {
-  using Eigen::VectorXd;
-  const VectorXd velocity = U.col(1).cwiseQuotient(U.col(0));
-  const VectorXd pressure =
-      (specific_heat_ratio - 1) *
-      (U.col(2) -
-       0.5 * U.col(1).array().square().matrix().cwiseQuotient(U.col(0)));
-  const VectorXd total_enthalpy = (U.col(2) + pressure).cwiseQuotient(U.col(0));
-  return std::make_tuple(std::move(velocity), std::move(pressure),
-                         std::move(total_enthalpy));
-}
-
-template <typename Derived>
-Eigen::VectorXd velocity(const Eigen::MatrixBase<Derived>& U) noexcept {
-  return U.col(1).cwiseQuotient(U.col(0));
-}
-
-template <typename Derived>
-Eigen::VectorXd pressure(const Eigen::MatrixBase<Derived>& U,
-                         double specific_heat_ratio) noexcept {
-  return (specific_heat_ratio - 1) *
-         (U.col(2) -
-          0.5 * U.col(1).array().square().matrix().cwiseQuotient(U.col(0)));
-}
-
-template <typename Derived1, typename Derived2>
-Eigen::VectorXd sonic_velocity(const Eigen::MatrixBase<Derived1>& pressure,
-                               const Eigen::MatrixBase<Derived2>& density,
-                               double specific_heat_ratio) noexcept {
-  return (specific_heat_ratio * pressure.cwiseQuotient(density)).cwiseSqrt();
-}
-
-}  // namespace matrix_api
-
-namespace array_api {
-
-/**
- * @brief Compute primitive variables (velocity, pressure, total enthalpy)
- *
- * @tparam Derived
- * @param U Conservation variables vector
- * @param specific_heat_ratio Specific heat ratio
- * @return std::tuple<Eigen::ArrayXd, Eigen::ArrayXd, Eigen::ArrayXd>
- * velocity, pressure, and total enthalpy
- */
-template <typename Derived>
-std::tuple<Eigen::ArrayXd, Eigen::ArrayXd, Eigen::ArrayXd> to_primitive_vars(
-    const Eigen::MatrixBase<Derived>& U, double specific_heat_ratio) noexcept {
-  using Eigen::ArrayXd;
-  const ArrayXd velocity = U.col(1).array() / U.col(0).array();
-  const ArrayXd pressure =
-      (specific_heat_ratio - 1) *
-      (U.col(2).array() - 0.5 * U.col(1).array().square() / U.col(0).array());
-  const ArrayXd total_enthalpy =
-      (U.col(2).array() + pressure) / U.col(0).array();
-  return std::make_tuple(std::move(velocity), std::move(pressure),
-                         std::move(total_enthalpy));
-}
-
-template <typename Derived>
-Eigen::ArrayXd velocity(const Eigen::MatrixBase<Derived>& U) noexcept {
-  return U.col(1).cwiseQuotient(U.col(0));
-}
-
-template <typename Derived>
-Eigen::ArrayXd pressure(const Eigen::MatrixBase<Derived>& U,
-                        double specific_heat_ratio) noexcept {
-  return (specific_heat_ratio - 1) *
-         (U.col(2) -
-          0.5 * U.col(1).array().square().matrix().cwiseQuotient(U.col(0)));
-}
-
-template <typename Derived1, typename Derived2>
-Eigen::ArrayXd sonic_velocity(const Eigen::ArrayBase<Derived1>& pressure,
-                              const Eigen::ArrayBase<Derived2>& density,
-                              double specific_heat_ratio) noexcept {
-  return (specific_heat_ratio * pressure / density).sqrt();
-}
-
-}  // namespace array_api
-
 template <typename Derived1, typename Derived2>
 Eigen::ArrayXd calc_velocity(
     const Eigen::ArrayBase<Derived1>& momentum_density,
@@ -145,6 +51,49 @@ Eigen::ArrayXd calc_total_enthalpy(
     const Eigen::ArrayBase<Derived2>& density,
     const Eigen::ArrayBase<Derived3>& total_energy_density) noexcept {
   return (total_energy_density + pressure) / density;
+}
+
+/**
+ * @brief Compute velocity, pressure, total enthalpy.
+ *
+ * @tparam Derived
+ * @param U Conservation variables vector
+ * @param specific_heat_ratio Specific heat ratio
+ * @return std::tuple<Eigen::ArrayXd, Eigen::ArrayXd, Eigen::ArrayXd>
+ * velocity, pressure, and total enthalpy
+ */
+template <typename Derived>
+std::tuple<Eigen::ArrayXd, Eigen::ArrayXd, Eigen::ArrayXd>
+calc_velocity_pressure_enthalpy(const Eigen::MatrixBase<Derived>& U,
+                                double specific_heat_ratio) noexcept {
+  using Eigen::ArrayXd;
+  const ArrayXd u = calc_velocity(U.col(1).array(), U.col(0).array());
+  const ArrayXd p = calc_pressure(U.col(1).array(), U.col(0).array(),
+                                  U.col(2).array(), specific_heat_ratio);
+  const ArrayXd h = calc_total_enthalpy(p, U.col(0).array(), U.col(2).array());
+  return std::make_tuple(std::move(u), std::move(p), std::move(h));
+}
+
+/**
+ * @brief Compute velocity, pressure, sonic velocity
+ *
+ * @tparam Derived
+ * @param U Conservation variables vector
+ * @param specific_heat_ratio Specific heat ratio
+ * @return std::tuple<Eigen::ArrayXd, Eigen::ArrayXd, Eigen::ArrayXd>
+ * velocity, pressure, and sonic velocity
+ */
+template <typename Derived>
+std::tuple<Eigen::ArrayXd, Eigen::ArrayXd, Eigen::ArrayXd>
+calc_velocity_pressure_sonic_velocity(const Eigen::MatrixBase<Derived>& U,
+                                      double specific_heat_ratio) noexcept {
+  using Eigen::ArrayXd;
+  const ArrayXd u = calc_velocity(U.col(1).array(), U.col(0).array());
+  const ArrayXd p = calc_pressure(U.col(1).array(), U.col(0).array(),
+                                  U.col(2).array(), specific_heat_ratio);
+  const ArrayXd c =
+      calc_sonic_velocity(p, U.col(0).array(), specific_heat_ratio);
+  return std::make_tuple(std::move(u), std::move(p), std::move(c));
 }
 
 /**

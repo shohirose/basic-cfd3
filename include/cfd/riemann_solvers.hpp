@@ -73,9 +73,7 @@ class StegerWarmingRiemannSolver {
       const Eigen::MatrixBase<Derived>& Ul) const noexcept {
     using Eigen::ArrayXd, Eigen::MatrixXd;
 
-    const ArrayXd u = array_api::velocity(Ul);
-    const ArrayXd p = array_api::pressure(Ul, gamma_);
-    const ArrayXd c = array_api::sonic_velocity(p, Ul.col(0).array(), gamma_);
+    const auto [u, p, c] = calc_velocity_pressure_sonic_velocity(Ul, gamma_);
     const ArrayXd up = u + c;
     const ArrayXd um = u - c;
     const ArrayXd lambda1 = u.max(0.0);
@@ -107,9 +105,7 @@ class StegerWarmingRiemannSolver {
       const Eigen::MatrixBase<Derived>& Ur) const noexcept {
     using Eigen::ArrayXd, Eigen::MatrixXd;
 
-    const ArrayXd u = array_api::velocity(Ur);
-    const ArrayXd p = array_api::pressure(Ur, gamma_);
-    const ArrayXd c = array_api::sonic_velocity(p, Ur.col(0).array(), gamma_);
+    const auto [u, p, c] = calc_velocity_pressure_sonic_velocity(Ur, gamma_);
     const ArrayXd up = u + c;
     const ArrayXd um = u - c;
     const ArrayXd lambda1 = u.min(0.0);
@@ -176,8 +172,8 @@ class RoeRiemannSolver {
     const ArrayXd rhor_sqrt = Ur.col(0).array().sqrt();
     const ArrayXd rho_m = rhol_sqrt * rhor_sqrt;
 
-    const auto [ul, pl, hl] = array_api::to_primitive_vars(Ul, gamma_);
-    const auto [ur, pr, hr] = array_api::to_primitive_vars(Ur, gamma_);
+    const auto [ul, pl, hl] = calc_velocity_pressure_enthalpy(Ul, gamma_);
+    const auto [ur, pr, hr] = calc_velocity_pressure_enthalpy(Ur, gamma_);
 
     const ArrayXd u_m =
         (ul * rhol_sqrt + ur * rhor_sqrt) / (rhol_sqrt + rhor_sqrt);
@@ -214,11 +210,11 @@ class RoeRiemannSolver {
          Ur.col(0).array() * ur.square() + pr -
          (lambda1 * dw1 * u_m + a1 * (lambda2 * dw2 * up - lambda3 * dw3 * um)))
             .matrix();
-    F.col(2) = 0.5 * (Ul.col(2).array() * ul + pl * ul +
-                      Ur.col(2).array() * ur + pr * ur -
-                      (0.5 * lambda1 * dw1 * u_m.square() +
-                       a1 * (lambda2 * dw2 * (h_m + c_m * u_m) -
-                             lambda3 * dw3 * (h_m - c_m * u_m))));
+    F.col(2) =
+        0.5 * ((Ul.col(2).array() + pl) * ul + (Ur.col(2).array() + pr) * ur -
+               (0.5 * lambda1 * dw1 * u_m.square() +
+                a1 * (lambda2 * dw2 * (h_m + c_m * u_m) -
+                      lambda3 * dw3 * (h_m - c_m * u_m))));
     return F;
   }
 

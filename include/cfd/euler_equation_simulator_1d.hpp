@@ -67,7 +67,7 @@ class EulerEquationSimulator1d {
    */
   template <typename Derived>
   Eigen::MatrixXd run(const Eigen::MatrixBase<Derived>& V) const noexcept {
-    assert(V.rows() this->total_cells());
+    assert(V.rows() == this->total_cells());
     assert(V.cols() == 3);
     using Eigen::MatrixXd;
 
@@ -122,11 +122,7 @@ class EulerEquationSimulator1d {
   double calc_timestep_length(
       const Eigen::MatrixBase<Derived>& U) const noexcept {
     using Eigen::ArrayXd;
-    const ArrayXd u = calc_velocity(U.col(1).array(), U.col(0).array());
-    const ArrayXd p = calc_pressure(U.col(1).array(), U.col(0).array(),
-                                    U.col(2).array(), gamma_);
-    const ArrayXd c = calc_sonic_velocity(p, U.col(0).array(), gamma_);
-
+    const auto [u, p, c] = calc_velocity_pressure_sonic_velocity(U, gamma_);
     const auto up = (u + c).abs().maxCoeff();
     const auto um = (u - c).abs().maxCoeff();
     return (cfl_number_ * dx_) / std::max({up, um, 0.1});
