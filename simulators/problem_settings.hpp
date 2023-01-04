@@ -20,6 +20,13 @@ inline Eigen::MatrixXd make_initial_condition(
   return V;
 }
 
+inline Eigen::VectorXd make_x(const cfd::ProblemParameters& params) {
+  const auto n = params.n_domain_cells;
+  using Eigen::VectorXd;
+  const VectorXd xe = VectorXd::LinSpaced(n + 1, -1.0, 1.0);
+  return 0.5 * (xe.head(n) + xe.tail(n));
+}
+
 inline cfd::ProblemParameters make_parameters() {
   return {
       0.02,  // dx

@@ -26,8 +26,6 @@ int main(int argc, char** argv) {
   writer.write(Vn(domain, 1), "u.txt");
   writer.write(Vn(domain, 2), "p.txt");
 
-  const auto n = params.n_domain_cells;
-  const VectorXd xe = VectorXd::LinSpaced(n + 1, -1.0, 1.0);
-  const VectorXd x = 0.5 * (xe.head(n) + xe.tail(n));
+  const VectorXd x = make_x(params);
   writer.write(x, "x.txt");
 }
