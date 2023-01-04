@@ -40,3 +40,4 @@ build/
 # Outputs
 exact_solution/
 result/
+*.png
