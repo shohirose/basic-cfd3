@@ -178,11 +178,10 @@ class RoeRiemannSolver {
 
     const ArrayXd up = u_m + c_m;
     const ArrayXd um = u_m - c_m;
-    const auto [ld1, ld2, ld3] =
-        this->calc_characteristic_velocities(u_m, up, um);
+    const auto [ld1, ld2, ld3] = this->calc_lambda(u_m, up, um);
     const auto [dw1, dw2, dw3] =
         this->calc_dw(rhol, rhor, pl, pr, ul, ur, rho_m, c_m, u_m);
-    const auto [r1, r2, r3] = this->calc_r(u_m, h_m, c_m, up, um);
+    const auto [R1, R2, R3] = this->calc_r(u_m, h_m, c_m, up, um);
 
     const ArrayXd el = Ul.col(2).array();
     const ArrayXd er = Ur.col(2).array();
@@ -190,11 +189,11 @@ class RoeRiemannSolver {
     const auto Fr = this->calc_flux(ur, rhor, pr, er);
 
     const MatrixXd dF1 =
-        (ld1.cwiseProduct(dw1)).replicate<1, 3>().cwiseProduct(r1);
+        (ld1.cwiseProduct(dw1)).replicate<1, 3>().cwiseProduct(R1);
     const MatrixXd dF2 =
-        (ld2.cwiseProduct(dw2)).replicate<1, 3>().cwiseProduct(r2);
+        (ld2.cwiseProduct(dw2)).replicate<1, 3>().cwiseProduct(R2);
     const MatrixXd dF3 =
-        (ld3.cwiseProduct(dw3)).replicate<1, 3>().cwiseProduct(r3);
+        (ld3.cwiseProduct(dw3)).replicate<1, 3>().cwiseProduct(R3);
 
     return 0.5 * ((Fl + Fr) - (dF1 + dF2 + dF3));
   }
@@ -217,10 +216,9 @@ class RoeRiemannSolver {
     return std::make_tuple(move(rho), move(u), move(h), move(c));
   }
 
-  std::tuple<Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd>
-  calc_characteristic_velocities(const Eigen::ArrayXd& u,
-                                 const Eigen::ArrayXd& up,
-                                 const Eigen::ArrayXd& um) const noexcept {
+  std::tuple<Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd> calc_lambda(
+      const Eigen::ArrayXd& u, const Eigen::ArrayXd& up,
+      const Eigen::ArrayXd& um) const noexcept {
     using Eigen::VectorXd, std::move;
     constexpr double eps = 0.15;
     const VectorXd lambda1 = u.abs().matrix().unaryExpr([eps](double x) {
@@ -273,22 +271,22 @@ class RoeRiemannSolver {
       const Eigen::ArrayXd& um) const noexcept {
     using Eigen::MatrixXd, std::move;
 
-    MatrixXd r1(u_m.size(), 3);
-    r1.col(0).array() = 1.0;
-    r1.col(1) = u_m.matrix();
-    r1.col(2) = (0.5 * u_m.square()).matrix();
+    MatrixXd R1(u_m.size(), 3);
+    R1.col(0).array() = 1.0;
+    R1.col(1) = u_m.matrix();
+    R1.col(2) = (0.5 * u_m.square()).matrix();
 
-    MatrixXd r2(u_m.size(), 3);
-    r2.col(0).array() = 1.0;
-    r2.col(1) = up.matrix();
-    r2.col(2) = (h_m + c_m * u_m).matrix();
+    MatrixXd R2(u_m.size(), 3);
+    R2.col(0).array() = 1.0;
+    R2.col(1) = up.matrix();
+    R2.col(2) = (h_m + c_m * u_m).matrix();
 
-    MatrixXd r3(u_m.size(), 3);
-    r3.col(0).array() = 1.0;
-    r3.col(1) = um.matrix();
-    r3.col(2) = (h_m - c_m * u_m).matrix();
+    MatrixXd R3(u_m.size(), 3);
+    R3.col(0).array() = 1.0;
+    R3.col(1) = um.matrix();
+    R3.col(2) = (h_m - c_m * u_m).matrix();
 
-    return std::make_tuple(move(r1), move(r2), move(r3));
+    return std::make_tuple(move(R1), move(R2), move(R3));
   }
 
   double gamma_;  ///> Specific heat ratio
