@@ -9,28 +9,32 @@ namespace cfd {
 ConservativeVariables FirstOrderSpacialReconstructor::calc_left(
     const ConservativeVariables& vars) const noexcept {
   assert(vars.density.size() == n_boundary_cells_ * 2 + n_domain_cells_);
-  assert(vars.momentum.size() == n_boundary_cells_ * 2 + n_domain_cells_);
-  assert(vars.total_energy.size() == n_boundary_cells_ * 2 + n_domain_cells_);
+  assert(vars.momentum_density.size() ==
+         n_boundary_cells_ * 2 + n_domain_cells_);
+  assert(vars.total_energy_density.size() ==
+         n_boundary_cells_ * 2 + n_domain_cells_);
 
   ConservativeVariables left;
   const auto rng = Eigen::seqN(n_boundary_cells_ - 1, n_domain_cells_ + 1);
   left.density = vars.density(rng);
-  left.momentum = vars.momentum(rng);
-  left.total_energy = vars.total_energy(rng);
+  left.momentum_density = vars.momentum_density(rng);
+  left.total_energy_density = vars.total_energy_density(rng);
   return left;
 }
 
 ConservativeVariables FirstOrderSpacialReconstructor::calc_right(
     const ConservativeVariables& vars) const noexcept {
   assert(vars.density.size() == n_boundary_cells_ * 2 + n_domain_cells_);
-  assert(vars.momentum.size() == n_boundary_cells_ * 2 + n_domain_cells_);
-  assert(vars.total_energy.size() == n_boundary_cells_ * 2 + n_domain_cells_);
+  assert(vars.momentum_density.size() ==
+         n_boundary_cells_ * 2 + n_domain_cells_);
+  assert(vars.total_energy_density.size() ==
+         n_boundary_cells_ * 2 + n_domain_cells_);
 
   ConservativeVariables right;
   const auto rng = Eigen::seqN(n_boundary_cells_, n_domain_cells_ + 1);
   right.density = vars.density(rng);
-  right.momentum = vars.momentum(rng);
-  right.total_energy = vars.total_energy(rng);
+  right.momentum_density = vars.momentum_density(rng);
+  right.total_energy_density = vars.total_energy_density(rng);
   return right;
 }
 
@@ -39,8 +43,8 @@ FluxVectors LaxWendroffSpacialReconstructor::calc_flux(
   using Eigen::ArrayXd;
   using Eigen::seqN;
   const auto& rho = vars.density;
-  const auto& m = vars.momentum;
-  const auto& e = vars.total_energy;
+  const auto& m = vars.momentum_density;
+  const auto& e = vars.total_energy_density;
   const auto rng1 = seqN(n_boundary_cells_ - 1, n_domain_cells_ + 1);
   const auto rng2 = seqN(n_boundary_cells_, n_domain_cells_ + 1);
   const auto alpha = 0.5 * dt / dx_;

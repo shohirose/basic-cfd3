@@ -8,8 +8,21 @@ namespace cfd {
 
 struct ConservativeVariables {
   Eigen::ArrayXd density;
-  Eigen::ArrayXd momentum;
-  Eigen::ArrayXd total_energy;
+
+  /// @brief Momentum density @f$ \rho u @f$
+  Eigen::ArrayXd momentum_density;
+
+  /**
+   * @brief Total energy density @f$ E^t @f$
+   *
+   * Total energy density is defined by
+   * @f[
+   * E^t = \rho \left( e + \frac{1}{2} u^2 \right),
+   * @f]
+   * where @f$ e @f$ is internal energy, @f$ u @f$ is velocity, and @f$ \rho @f$
+   * is density.
+   */
+  Eigen::ArrayXd total_energy_density;
 };
 
 struct PrimitiveVariables {

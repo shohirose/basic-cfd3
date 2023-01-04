@@ -19,9 +19,9 @@ FluxVectors StegerWarmingRiemannSolver::calc_positive_flux(
     const ConservativeVariables& left) const noexcept {
   using Eigen::ArrayXd;
 
-  const ArrayXd u = calc_velocity(left.momentum, left.density);
-  const ArrayXd p =
-      calc_pressure(left.momentum, left.density, left.total_energy, gamma_);
+  const ArrayXd u = calc_velocity(left.momentum_density, left.density);
+  const ArrayXd p = calc_pressure(left.momentum_density, left.density,
+                                  left.total_energy_density, gamma_);
   const ArrayXd c = calc_sonic_velocity(p, left.density, gamma_);
   const ArrayXd up = u + c;
   const ArrayXd um = u - c;
@@ -48,9 +48,9 @@ FluxVectors StegerWarmingRiemannSolver::calc_negative_flux(
     const ConservativeVariables& right) const noexcept {
   using Eigen::ArrayXd;
 
-  const ArrayXd u = calc_velocity(right.momentum, right.density);
-  const ArrayXd p =
-      calc_pressure(right.momentum, right.density, right.total_energy, gamma_);
+  const ArrayXd u = calc_velocity(right.momentum_density, right.density);
+  const ArrayXd p = calc_pressure(right.momentum_density, right.density,
+                                  right.total_energy_density, gamma_);
   const ArrayXd c = calc_sonic_velocity(p, right.density, gamma_);
   const ArrayXd up = u + c;
   const ArrayXd um = u - c;
@@ -83,18 +83,18 @@ FluxVectors RoeRiemannSolver::calc_flux(
   const ArrayXd rhor_sqrt = rhor.sqrt();
   const ArrayXd rho_m = rhol_sqrt * rhor_sqrt;
 
-  const ArrayXd ul = calc_velocity(left.momentum, left.density);
-  const ArrayXd ur = calc_velocity(right.momentum, right.density);
+  const ArrayXd ul = calc_velocity(left.momentum_density, left.density);
+  const ArrayXd ur = calc_velocity(right.momentum_density, right.density);
   const ArrayXd u_m =
       (ul * rhol_sqrt + ur * rhor_sqrt) / (rhol_sqrt + rhor_sqrt);
 
-  const ArrayXd pl =
-      calc_pressure(left.momentum, left.density, left.total_energy, gamma_);
-  const ArrayXd pr =
-      calc_pressure(right.momentum, right.density, right.total_energy, gamma_);
+  const ArrayXd pl = calc_pressure(left.momentum_density, left.density,
+                                   left.total_energy_density, gamma_);
+  const ArrayXd pr = calc_pressure(right.momentum_density, right.density,
+                                   right.total_energy_density, gamma_);
 
-  const auto& el = left.total_energy;
-  const auto& er = right.total_energy;
+  const auto& el = left.total_energy_density;
+  const auto& er = right.total_energy_density;
   const ArrayXd hl = calc_total_enthalpy(pl, rhol, el);
   const ArrayXd hr = calc_total_enthalpy(pr, rhor, er);
   const ArrayXd h_m =
