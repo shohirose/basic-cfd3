@@ -28,6 +28,9 @@ class NoFlowBoundary {
    * U(:, 0) = density
    * U(:, 1) = moment density
    * U(:, 2) = total energy density
+   *
+   * TODO: This is actually not a no-flow boundary condition. Modification is
+   * required.
    */
   template <typename Derived>
   void apply(Eigen::MatrixBase<Derived>& U) const noexcept {
