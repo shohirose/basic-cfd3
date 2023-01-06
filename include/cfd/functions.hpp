@@ -163,7 +163,7 @@ Eigen::MatrixXd to_conservation_vars(const Eigen::MatrixBase<Derived>& V,
   U.col(0) = V.col(0);
   U.col(1) = calc_momentum_density(V.col(0).array(), V.col(1).array()).matrix();
   U.col(2) = calc_total_energy_density(V.col(2).array(), V.col(1).array(),
-                                       V.col(0).array(), specific_heat_ratio)
+                                       U.col(1).array(), specific_heat_ratio)
                  .matrix();
   return U;
 }
