@@ -5,13 +5,13 @@ namespace fs = std::filesystem;
 
 using Eigen::VectorXd, Eigen::seqN;
 
-using Simulator =
-    cfd::EulerEquationSimulator1d<cfd::FirstOrderSpacialReconstructor,
-                                  cfd::StegerWarmingRiemannSolver>;
+using Simulator = cfd::EulerEquationSimulator1d<
+    cfd::StegerWarmingRiemannSolver<cfd::FirstOrderSpacialReconstructor>>;
 
 Simulator make_simulator(const cfd::ProblemParameters& params) {
-  return {params, cfd::FirstOrderSpacialReconstructor{params},
-          cfd::StegerWarmingRiemannSolver{params}};
+  return {params,
+          cfd::StegerWarmingRiemannSolver<cfd::FirstOrderSpacialReconstructor>{
+              params}};
 }
 
 int main(int argc, char** argv) {

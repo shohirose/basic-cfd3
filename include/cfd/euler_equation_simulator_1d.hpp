@@ -1,9 +1,6 @@
 #ifndef CFD_EULER_EQUATION_SIMULATOR_1D_HPP
 #define CFD_EULER_EQUATION_SIMULATOR_1D_HPP
 
-#include <iostream>
-#include <type_traits>
-
 #include "cfd/boundary_conditions.hpp"
 #include "cfd/functions.hpp"
 #include "cfd/problem_parameters.hpp"
@@ -11,31 +8,17 @@
 
 namespace cfd {
 
-// Forward declaration
-class NoRiemannSolver;
-class LaxWendroffSpacialReconstructor;
-
 /**
  * @brief 1-D Euler equation simulator.
  *
  * @tparam SpacialReconstructor Spacial reconstruction scheme
  * @tparam RiemannSolver Riemann solver
  */
-template <typename SpacialReconstructor, typename RiemannSolver>
+template <typename FluxSolver>
 class EulerEquationSimulator1d {
  public:
-  static_assert(
-      (std::is_same_v<SpacialReconstructor, LaxWendroffSpacialReconstructor> &&
-       std::is_same_v<RiemannSolver, NoRiemannSolver>) ||
-          !std::is_same_v<SpacialReconstructor,
-                          LaxWendroffSpacialReconstructor> &&
-              !std::is_same_v<RiemannSolver, NoRiemannSolver>,
-      "NoRiemannSolver must be selected only with "
-      "LaxWendroffSpacialReconstructor.");
-
   EulerEquationSimulator1d(const ProblemParameters& params,
-                           const SpacialReconstructor& reconstructor,
-                           const RiemannSolver& solver)
+                           const FluxSolver& solver)
       : dx_{params.dx},
         gamma_{params.specific_heat_ratio},
         tend_{params.tend},
@@ -43,7 +26,6 @@ class EulerEquationSimulator1d {
         n_boundary_cells_{params.n_bounary_cells},
         n_domain_cells_{params.n_domain_cells},
         boundary_{params},
-        reconstructor_{reconstructor},
         solver_{solver},
         integrator_{params} {}
 
@@ -85,28 +67,14 @@ class EulerEquationSimulator1d {
       tsteps += 1;
       t += dt;
 
-      if constexpr (is_lax_wendroff()) {
-        const auto F = reconstructor_.calc_flux(U, dt);
-        integrator_.update(U, F, dt);
-        boundary_.apply(U);
-      } else {
-        const auto Ul = reconstructor_.calc_left(U);
-        const auto Ur = reconstructor_.calc_right(U);
-        const auto F = solver_.calc_flux(Ul, Ur);
-        integrator_.update(U, F, dt);
-        boundary_.apply(U);
-      }
+      integrator_.update(U, dt, solver_);
+      boundary_.apply(U);
     }
 
     return to_primitive_vars(U, gamma_);
   }
 
  private:
-  static constexpr bool is_lax_wendroff() {
-    return std::is_same_v<SpacialReconstructor,
-                          LaxWendroffSpacialReconstructor>;
-  }
-
   int total_cells() const noexcept {
     return 2 * n_boundary_cells_ + n_domain_cells_;
   }
@@ -122,10 +90,11 @@ class EulerEquationSimulator1d {
   double calc_timestep_length(
       const Eigen::MatrixBase<Derived>& U) const noexcept {
     using Eigen::ArrayXd;
+    constexpr double minimum_velocity = 0.1;
     const auto [u, p, c] = calc_velocity_pressure_sonic_velocity(U, gamma_);
     const auto up = (u + c).abs().maxCoeff();
     const auto um = (u - c).abs().maxCoeff();
-    return (cfl_number_ * dx_) / std::max({up, um, 0.1});
+    return (cfl_number_ * dx_) / std::max({up, um, minimum_velocity});
   }
 
   double dx_;                           ///> Grid length
@@ -135,16 +104,14 @@ class EulerEquationSimulator1d {
   int n_boundary_cells_;                ///> Number of boundary cells
   int n_domain_cells_;                  ///> Number of domain cells
   NoFlowBoundary boundary_;             ///> Boundary condition
-  SpacialReconstructor reconstructor_;  ///> Spacial reconstruction scheme
-  RiemannSolver solver_;                ///> Riemann solver
+  FluxSolver solver_;                   ///> Flux solver
   ExplicitEulerScheme integrator_;      ///> Time integration scheme
 };
 
-template <typename SpacialReconstructor, typename RiemannSolver>
-EulerEquationSimulator1d<SpacialReconstructor, RiemannSolver> make_simulator(
-    const ProblemParameters& params, const SpacialReconstructor& reconstructor,
-    const RiemannSolver& solver) {
-  return {params, reconstructor, solver};
+template <typename FluxSolver>
+EulerEquationSimulator1d<FluxSolver> make_simulator(
+    const ProblemParameters& params, const FluxSolver& solver) {
+  return {params, solver};
 }
 
 }  // namespace cfd

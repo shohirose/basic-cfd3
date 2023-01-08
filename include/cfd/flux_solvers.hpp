@@ -1,5 +1,5 @@
-#ifndef CFD_RIEMANN_SOLVERS_HPP
-#define CFD_RIEMANN_SOLVERS_HPP
+#ifndef CFD_FLUX_SOLVERS_HPP
+#define CFD_FLUX_SOLVERS_HPP
 
 #include <Eigen/Core>
 #include <tuple>
@@ -26,55 +26,18 @@ struct NegativeFlux {
 
 }  // namespace detail
 
-class NoRiemannSolver {};
-
-/**
- * @brief Steger-Warming Riemann solver
- *
- * This Riemann solver computes numerical flux using the flux vector splitting
- * scheme.
- */
+template <typename SpacialReconstructor>
 class StegerWarmingRiemannSolver {
  public:
-  /**
-   * @brief Construct a new Steger Warming Riemann Solver object
-   *
-   * @param gamma Specific heat ratio
-   */
-  StegerWarmingRiemannSolver(double gamma) : gamma_{gamma} {}
-
-  /**
-   * @brief Construct a new Steger Warming Riemann Solver object
-   *
-   * @param params Problem parameters
-   */
   StegerWarmingRiemannSolver(const ProblemParameters& params)
-      : gamma_{params.specific_heat_ratio} {}
+      : gamma_{params.specific_heat_ratio}, reconstructor_{params} {}
 
-  /**
-   * @brief Compute numerical flux at cell interfaces
-   *
-   * @param Ul Conservation variables vector at the LHS of cell interfaces
-   * @param Ur Conservation variables vector at the RHS of cell interfaces
-   * @return Eigen::MatrixXd Numerical flux vector
-   *
-   * Ul and Ur have a shape of (n_domain_cells + 1, 3). Each column contains
-   * density, moment density, and total energy density, respectively.
-   *
-   * U(:, 0) = density
-   * U(:, 1) = moment density
-   * U(:, 2) = total energy density
-   *
-   * F has a shape of (n_domain_cells + 1, 3). Each column contains
-   * @f$ \rho u \f$, @f$ \rho u^2 + p @f$, and @f$ u (E^t + p) @f$, where
-   * @f$ u @f$ is velocity, @f$ \rho @f$ is density, @f$ p @f$ is pressure,
-   * and @f$ E^t @f$ is total energy density.
-   */
-  template <typename Derived1, typename Derived2>
+  template <typename Derived>
   Eigen::MatrixXd calc_flux(
-      const Eigen::MatrixBase<Derived1>& Ul,
-      const Eigen::MatrixBase<Derived2>& Ur) const noexcept {
+      const Eigen::MatrixBase<Derived>& U) const noexcept {
     using Eigen::MatrixXd;
+    const MatrixXd Ul = reconstructor_.calc_left(U);
+    const MatrixXd Ur = reconstructor_.calc_right(U);
     const MatrixXd Fp = this->calc_flux_impl(Ul, detail::PositiveFlux{});
     const MatrixXd Fm = this->calc_flux_impl(Ur, detail::NegativeFlux{});
     return Fp + Fm;
@@ -84,7 +47,7 @@ class StegerWarmingRiemannSolver {
   /**
    * @brief Compute positive numerical flux
    *
-   * @param Ul Conservation variables vector at the LHS of cell interfaces
+   * @param U Conservation variables vector at the LHS of cell interfaces
    * @return Eigen::MatrixXd Numerical flux vector
    */
   template <typename Derived, typename F>
@@ -121,20 +84,32 @@ class StegerWarmingRiemannSolver {
   }
 
   double gamma_;  ///> Specific heat ratio
+  SpacialReconstructor reconstructor_;
 };
 
+template <typename SpacialReconstructor>
 class RoeRiemannSolver {
  public:
-  /**
-   * @brief Construct a new Roe Riemann Solver object
-   *
-   * @param gamma Specific heat ratio
-   */
-  RoeRiemannSolver(double gamma) : gamma_{gamma} {}
-
   RoeRiemannSolver(const ProblemParameters& params)
-      : gamma_{params.specific_heat_ratio} {}
+      : gamma_{params.specific_heat_ratio}, reconstructor_{params} {}
 
+  /**
+   * @brief Compute numerical flux vector
+   *
+   * @tparam Derived
+   * @param U Conservation variables
+   * @return Eigen::MatrixXd Numerical flux
+   */
+  template <typename Derived>
+  Eigen::MatrixXd calc_flux(
+      const Eigen::MatrixBase<Derived>& U) const noexcept {
+    using Eigen::MatrixXd;
+    const MatrixXd Ul = reconstructor_.calc_left(U);
+    const MatrixXd Ur = reconstructor_.calc_right(U);
+    return this->calc_flux_impl(Ul, Ur);
+  }
+
+ private:
   /**
    * @brief Compute numerical flux
    *
@@ -157,7 +132,7 @@ class RoeRiemannSolver {
    * and @f$ E^t @f$ is total energy density.
    */
   template <typename Derived1, typename Derived2>
-  Eigen::MatrixXd calc_flux(
+  Eigen::MatrixXd calc_flux_impl(
       const Eigen::MatrixBase<Derived1>& Ul,
       const Eigen::MatrixBase<Derived2>& Ur) const noexcept {
     using Eigen::ArrayXd, Eigen::MatrixXd, Eigen::Map;
@@ -177,8 +152,9 @@ class RoeRiemannSolver {
     const ArrayXd hl = calc_enthalpy(rhol, ul, pl);
     const ArrayXd hr = calc_enthalpy(rhor, ur, pr);
     const ArrayXd rho_m = calc_average_density(rhol, rhor);
-    const ArrayXd u_m = calc_average_velocity(ul, ur, rhol, rhor);
-    const ArrayXd h_m = calc_average_enthalpy(hl, hr, rhol, rhor);
+    const ArrayXd w = 1 / (1 + (rhor / rhol).sqrt());
+    const ArrayXd u_m = calc_average_velocity(ul, ur, w);
+    const ArrayXd h_m = calc_average_enthalpy(hl, hr, w);
     const ArrayXd c_m = calc_average_sonic_velocity(h_m, u_m);
 
     const ArrayXd up = u_m + c_m;
@@ -188,25 +164,28 @@ class RoeRiemannSolver {
     const ArrayXd ld3 = calc_lambda(um);
 
     const ArrayXd dw1 = rhor - rhol - (pr - pl) / c_m.square();
-    const ArrayXd dw2 = 0.5 * (rho_m * (ur - ul) + (pr - pl) / c_m.square());
-    const ArrayXd dw3 = 0.5 * (-rho_m * (ur - ul) + (pr - pl) / c_m.square());
+    const ArrayXd dp = (pr - pl) / (rho_m * c_m);
+    const ArrayXd a = 0.5 * rho_m / c_m;
+    const ArrayXd dw2 = a * (ur - ul + dp);
+    const ArrayXd dw3 = -a * (ur - ul - dp);
 
-    const auto [R1, R2, R3] = this->calc_r(u_m, h_m, c_m, up, um);
+    const ArrayXd x1 = ld1 * dw1;
+    const ArrayXd x2 = ld2 * dw2;
+    const ArrayXd x3 = ld3 * dw3;
 
-    const auto Fl = this->calc_flux(ul, rhol, pl, rhoEl);
-    const auto Fr = this->calc_flux(ur, rhor, pr, rhoEr);
+    // const MatrixXd Fl = this->calc_flux(ul, rhol, pl, rhoEl);
+    // const MatrixXd Fr = this->calc_flux(ur, rhor, pr, rhoEr);
 
-    const MatrixXd dF1 =
-        (ld1 * dw1).matrix().replicate<1, 3>().cwiseProduct(R1);
-    const MatrixXd dF2 =
-        (ld2 * dw2).matrix().replicate<1, 3>().cwiseProduct(R2);
-    const MatrixXd dF3 =
-        (ld3 * dw3).matrix().replicate<1, 3>().cwiseProduct(R3);
-
-    return 0.5 * ((Fl + Fr) - (dF1 + dF2 + dF3));
+    MatrixXd F(u_m.size(), 3);
+    F.col(0).array() = 0.5 * (rhoul + rhour) - 0.5 * (x1 + x2 + x3);
+    F.col(1).array() = 0.5 * (rhoul * ul + pl + rhour * ur + pr) -
+                       0.5 * (x1 * u_m + x2 * up + x3 * um);
+    F.col(2).array() = 0.5 * ((rhoEl + pl) * ul + (rhoEr + pr) * ur) -
+                       0.5 * (0.5 * x1 * u_m.square() + x2 * (h_m + c_m * u_m) +
+                              x3 * (h_m - c_m * u_m));
+    return F;
   }
 
- private:
   template <typename Derived1, typename Derived2>
   static Eigen::ArrayXd calc_velocity(
       const Eigen::ArrayBase<Derived1>& rho,
@@ -237,25 +216,19 @@ class RoeRiemannSolver {
     return (rhol * rhor).sqrt();
   }
 
-  template <typename Derived1, typename Derived2, typename Derived3,
-            typename Derived4>
+  template <typename Derived1, typename Derived2, typename Derived3>
   static Eigen::ArrayXd calc_average_velocity(
       const Eigen::ArrayBase<Derived1>& ul,
       const Eigen::ArrayBase<Derived2>& ur,
-      const Eigen::ArrayBase<Derived3>& rhol,
-      const Eigen::ArrayBase<Derived4>& rhor) noexcept {
-    const Eigen::ArrayXd w = 1 / (1 + (rhor / rhol).sqrt());
+      const Eigen::ArrayBase<Derived3>& w) noexcept {
     return ul * w + ur * (1 - w);
   }
 
-  template <typename Derived1, typename Derived2, typename Derived3,
-            typename Derived4>
+  template <typename Derived1, typename Derived2, typename Derived3>
   static Eigen::ArrayXd calc_average_enthalpy(
       const Eigen::ArrayBase<Derived1>& hl,
       const Eigen::ArrayBase<Derived2>& hr,
-      const Eigen::ArrayBase<Derived3>& rhol,
-      const Eigen::ArrayBase<Derived4>& rhor) noexcept {
-    const Eigen::ArrayXd w = 1 / (1 + (rhor / rhol).sqrt());
+      const Eigen::ArrayBase<Derived3>& w) noexcept {
     return hl * w + hr * (1 - w);
   }
 
@@ -275,50 +248,60 @@ class RoeRiemannSolver {
     });
   }
 
-  template <typename Derived1, typename Derived2, typename Derived3,
-            typename Derived4>
-  static Eigen::MatrixXd calc_flux(
-      const Eigen::ArrayBase<Derived1>& u,
-      const Eigen::ArrayBase<Derived2>& rho,
-      const Eigen::ArrayBase<Derived3>& p,
-      const Eigen::ArrayBase<Derived4>& e) noexcept {
-    Eigen::MatrixXd F(u.size(), 3);
-    F.col(0) = (rho * u).matrix();
-    F.col(1) = (rho * u.square() + p).matrix();
-    F.col(2) = ((e + p) * u).matrix();
+  double gamma_;  ///> Specific heat ratio
+  SpacialReconstructor reconstructor_;
+};
+
+class LaxWendroffSolver {
+ public:
+  LaxWendroffSolver(const ProblemParameters& params)
+      : dx_{params.dx},
+        gamma_{params.specific_heat_ratio},
+        n_boundary_cells_{params.n_bounary_cells},
+        n_domain_cells_{params.n_domain_cells} {}
+
+  template <typename Derived>
+  Eigen::MatrixXd calc_flux(const Eigen::MatrixBase<Derived>& U,
+                            double dt) const noexcept {
+    using Eigen::ArrayXd, Eigen::MatrixXd, Eigen::seqN, Eigen::Map;
+
+    Map<const ArrayXd> rho(&U(0, 0), U.rows());
+    Map<const ArrayXd> rhou(&U(0, 1), U.rows());
+    Map<const ArrayXd> rhoE(&U(0, 2), U.rows());
+
+    const auto i = n_boundary_cells_;
+    const auto n = n_domain_cells_ + 1;
+    const auto rng1 = seqN(i, n);
+    const auto rng2 = seqN(i - 1, n);
+
+    const ArrayXd rho_m = 0.5 * (rho(rng1) + rho(rng2)) -
+                          (0.5 * dt / dx_) * (rhou(rng1) - rhou(rng2));
+
+    const ArrayXd u = rhou / rho;
+    const ArrayXd p = (gamma_ - 1) * (rhoE - 0.5 * rho * u.square());
+    const ArrayXd f = rhou * u + p;
+    const ArrayXd rhou_m = 0.5 * (rhou(rng1) + rhou(rng2)) -
+                           (0.5 * dt / dx_) * (f(rng1) - f(rng2));
+    const ArrayXd g = u * (rhoE + p);
+    const ArrayXd rhoE_m = 0.5 * (rhoE(rng1) + rhoE(rng2)) -
+                           (0.5 * dt / dx_) * (g(rng1) - g(rng2));
+    const ArrayXd u_m = rhou_m / rho_m;
+    const ArrayXd p_m = (gamma_ - 1) * (rhoE_m - 0.5 * rho_m * u_m.square());
+
+    MatrixXd F(n, 3);
+    F.col(0) = rhou_m.matrix();
+    F.col(1) = (rhou_m * u_m + p_m).matrix();
+    F.col(2) = (u_m * (rhoE_m + p_m)).matrix();
     return F;
   }
 
-  /**
-   * @brief Compute eigenvectors
-   */
-  std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> calc_r(
-      const Eigen::ArrayXd& u_m, const Eigen::ArrayXd& h_m,
-      const Eigen::ArrayXd& c_m, const Eigen::ArrayXd& up,
-      const Eigen::ArrayXd& um) const noexcept {
-    using Eigen::MatrixXd, std::move;
-
-    MatrixXd R1(u_m.size(), 3);
-    R1.col(0).array() = 1.0;
-    R1.col(1) = u_m.matrix();
-    R1.col(2) = (0.5 * u_m.square()).matrix();
-
-    MatrixXd R2(u_m.size(), 3);
-    R2.col(0).array() = 1.0;
-    R2.col(1) = up.matrix();
-    R2.col(2) = (h_m + c_m * u_m).matrix();
-
-    MatrixXd R3(u_m.size(), 3);
-    R3.col(0).array() = 1.0;
-    R3.col(1) = um.matrix();
-    R3.col(2) = (h_m - c_m * u_m).matrix();
-
-    return std::make_tuple(move(R1), move(R2), move(R3));
-  }
-
-  double gamma_;  ///> Specific heat ratio
+ private:
+  double dx_;
+  double gamma_;
+  int n_boundary_cells_;
+  int n_domain_cells_;
 };
 
 }  // namespace cfd
 
-#endif  // CFD_RIEMANN_SOLVERS_HPP
+#endif  // CFD_FLUX_SOLVERS_HPP

@@ -5,13 +5,10 @@ namespace fs = std::filesystem;
 
 using Eigen::VectorXd, Eigen::seqN;
 
-using Simulator =
-    cfd::EulerEquationSimulator1d<cfd::LaxWendroffSpacialReconstructor,
-                                  cfd::NoRiemannSolver>;
+using Simulator = cfd::EulerEquationSimulator1d<cfd::LaxWendroffSolver>;
 
 Simulator make_simulator(const cfd::ProblemParameters& params) {
-  return {params, cfd::LaxWendroffSpacialReconstructor{params},
-          cfd::NoRiemannSolver{}};
+  return {params, cfd::LaxWendroffSolver{params}};
 }
 
 int main(int argc, char** argv) {
