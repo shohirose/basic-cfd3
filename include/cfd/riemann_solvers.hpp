@@ -187,10 +187,7 @@ class RoeRiemannSolver {
     const ArrayXd ld2 = calc_lambda(up);
     const ArrayXd ld3 = calc_lambda(um);
 
-    const ArrayXd dp = pr - pl;
     const ArrayXd dw1 = rhor - rhol - (pr - pl) / c_m.square();
-    const ArrayXd a = rho_m / (2 * c_m);
-    const ArrayXd du = ur - ul;
     const ArrayXd dw2 = 0.5 * (rho_m * (ur - ul) + (pr - pl) / c_m.square());
     const ArrayXd dw3 = 0.5 * (-rho_m * (ur - ul) + (pr - pl) / c_m.square());
 
