@@ -8,6 +8,24 @@
 
 namespace cfd {
 
+namespace detail {
+
+struct PositiveFlux {
+  template <typename Derived>
+  Eigen::ArrayXd operator()(const Eigen::ArrayBase<Derived>& u) const noexcept {
+    return u.max(0.0);
+  }
+};
+
+struct NegativeFlux {
+  template <typename Derived>
+  Eigen::ArrayXd operator()(const Eigen::ArrayBase<Derived>& u) const noexcept {
+    return u.min(0.0);
+  }
+};
+
+}  // namespace detail
+
 class NoRiemannSolver {};
 
 /**
@@ -57,8 +75,8 @@ class StegerWarmingRiemannSolver {
       const Eigen::MatrixBase<Derived1>& Ul,
       const Eigen::MatrixBase<Derived2>& Ur) const noexcept {
     using Eigen::MatrixXd;
-    const MatrixXd Fp = this->calc_positive_flux(Ul);
-    const MatrixXd Fm = this->calc_negative_flux(Ur);
+    const MatrixXd Fp = this->calc_flux_impl(Ul, detail::PositiveFlux{});
+    const MatrixXd Fm = this->calc_flux_impl(Ur, detail::NegativeFlux{});
     return Fp + Fm;
   }
 
@@ -69,58 +87,33 @@ class StegerWarmingRiemannSolver {
    * @param Ul Conservation variables vector at the LHS of cell interfaces
    * @return Eigen::MatrixXd Numerical flux vector
    */
-  template <typename Derived>
-  Eigen::MatrixXd calc_positive_flux(
-      const Eigen::MatrixBase<Derived>& Ul) const noexcept {
-    using Eigen::ArrayXd, Eigen::MatrixXd;
+  template <typename Derived, typename F>
+  Eigen::MatrixXd calc_flux_impl(const Eigen::MatrixBase<Derived>& U,
+                                 F&& f) const noexcept {
+    using Eigen::ArrayXd, Eigen::MatrixXd, Eigen::Map;
 
-    const auto [u, p, c] = calc_velocity_pressure_sonic_velocity(Ul, gamma_);
+    Map<const ArrayXd> rho(&U(0, 0), U.rows());
+    Map<const ArrayXd> rhou(&U(0, 1), U.rows());
+    Map<const ArrayXd> rhoE(&U(0, 2), U.rows());
+
+    const ArrayXd u = rhou / rho;
+    const ArrayXd p = (gamma_ - 1) * (rhoE - 0.5 * rho * u.square());
+    const ArrayXd c = (gamma_ * p / rho).sqrt();
+
     const ArrayXd up = u + c;
     const ArrayXd um = u - c;
-    const ArrayXd lambda1 = u.max(0.0);
-    const ArrayXd lambda2 = up.max(0.0);
-    const ArrayXd lambda3 = um.max(0.0);
+    const ArrayXd lambda1 = f(u);
+    const ArrayXd lambda2 = f(up);
+    const ArrayXd lambda3 = f(um);
 
-    const ArrayXd x1 = ((gamma_ - 1.0) / gamma_) * Ul.col(0).array() * lambda1;
-    const ArrayXd x2 = Ul.col(0).array() * lambda2 / (2 * gamma_);
-    const ArrayXd x3 = Ul.col(0).array() * lambda3 / (2 * gamma_);
+    const ArrayXd x1 = ((gamma_ - 1.0) / gamma_) * rho * lambda1;
+    const ArrayXd x2 = rho * lambda2 / (2 * gamma_);
+    const ArrayXd x3 = rho * lambda3 / (2 * gamma_);
     const ArrayXd uu = 0.5 * u.square();
     const ArrayXd cc = (1 / (gamma_ - 1)) * c.square();
     const ArrayXd uc = u * c;
 
-    MatrixXd F(Ul.rows(), 3);
-    F.col(0) = (x1 + x2 + x3).matrix();
-    F.col(1) = (x1 * u + x2 * up + x3 * um).matrix();
-    F.col(2) = (x1 * uu + x2 * (uu + cc + uc) + x3 * (uu + cc - uc)).matrix();
-    return F;
-  }
-
-  /**
-   * @brief Compute negative numerical flux
-   *
-   * @param Ur Conservation variables vector at the RHS of cell interfaces
-   * @return Eigen::MatrixXd Numerical flux vector
-   */
-  template <typename Derived>
-  Eigen::MatrixXd calc_negative_flux(
-      const Eigen::MatrixBase<Derived>& Ur) const noexcept {
-    using Eigen::ArrayXd, Eigen::MatrixXd;
-
-    const auto [u, p, c] = calc_velocity_pressure_sonic_velocity(Ur, gamma_);
-    const ArrayXd up = u + c;
-    const ArrayXd um = u - c;
-    const ArrayXd lambda1 = u.min(0.0);
-    const ArrayXd lambda2 = up.min(0.0);
-    const ArrayXd lambda3 = um.min(0.0);
-
-    const ArrayXd x1 = ((gamma_ - 1.0) / gamma_) * Ur.col(0).array() * lambda1;
-    const ArrayXd x2 = Ur.col(0).array() * lambda2 / (2 * gamma_);
-    const ArrayXd x3 = Ur.col(0).array() * lambda3 / (2 * gamma_);
-    const ArrayXd uu = 0.5 * u.square();
-    const ArrayXd cc = (1 / (gamma_ - 1)) * c.square();
-    const ArrayXd uc = u * c;
-
-    MatrixXd F(Ur.rows(), 3);
+    MatrixXd F(U.rows(), 3);
     F.col(0) = (x1 + x2 + x3).matrix();
     F.col(1) = (x1 * u + x2 * up + x3 * um).matrix();
     F.col(2) = (x1 * uu + x2 * (uu + cc + uc) + x3 * (uu + cc - uc)).matrix();
