@@ -56,10 +56,16 @@ Then, run all simulators and get results. For Linux,
 $ ./run_all.sh
 ```
 
-For Windows,
+For Windows, if simulators are created just under the "build" folder, you can just type:
 
 ```
 $ .\run_all.ps1
+```
+
+If simulators are created under either "Release" or "Debug" folder, you should add "-Release" or "-Debug" option. For example:
+
+```
+$ .\run_all.ps1 -Release
 ```
 
 To visualize results, open [`plot.ipynb`](./plot.ipynb) with Jupyter Lab, and run all cells.
