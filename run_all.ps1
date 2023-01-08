@@ -1,11 +1,32 @@
-$simulators = "simulator_sw_1st_order", "simulator_roe_1st_order", "simulator_lax_wendroff", "simulator_exact"
-$buildFolders = ".\build\Release", ".\build\Debug", ".\build"
-foreach ($folder in $buildFolders) {
-  if (Test-Path $folder) {
-    foreach ($simulator in $simulators) {
-      $path = Join-Path $folder $simulator
+Param(
+  [switch]$Release,
+  [switch]$Debug,
+  [string]$buildDir = ".\build"
+)
+
+function Invoke-Simulators ([Parameter(Mandatory, ValueFromPipeline)]$dir) {
+  if (!(Test-Path $dir)) { 
+    Write-Warning "Folder not found: ${dir}"
+    return
+  }
+  $simulators = "simulator_sw_1st_order", "simulator_roe_1st_order", "simulator_lax_wendroff", "simulator_exact"
+  foreach ($simulator in $simulators) {
+    $path = Join-Path $dir "${simulator}.exe"
+    if (Test-Path $path) {
       & $path
     }
-    break
+    else {
+      Write-Warning "Path not found: ${path}"
+    }
   }
+}
+
+if ($Release) {
+  Join-Path $buildDir "Release" | Invoke-Simulators
+}
+elseif ($Debug) {
+  Join-Path $buildDir "Debug" | Invoke-Simulators
+}
+else {
+  Invoke-Simulators $buildDir
 }
