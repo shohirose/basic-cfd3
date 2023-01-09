@@ -3,3 +3,7 @@
 ./build/simulator_sw_1st_order
 ./build/simulator_roe_1st_order
 ./build/simulator_lax_wendroff
+./build/simulator_roe_tvd_minmod
+./build/simulator_roe_tvd_vanleer
+./build/simulator_sw_tvd_minmod
+./build/simulator_sw_tvd_vanleer
