@@ -173,9 +173,6 @@ class RoeRiemannSolver {
     const ArrayXd x2 = ld2 * dw2;
     const ArrayXd x3 = ld3 * dw3;
 
-    // const MatrixXd Fl = this->calc_flux(ul, rhol, pl, rhoEl);
-    // const MatrixXd Fr = this->calc_flux(ur, rhor, pr, rhoEr);
-
     MatrixXd F(u_m.size(), 3);
     F.col(0).array() = 0.5 * (rhoul + rhour) - 0.5 * (x1 + x2 + x3);
     F.col(1).array() = 0.5 * (rhoul * ul + pl + rhour * ur + pr) -
