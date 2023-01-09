@@ -28,14 +28,18 @@ $$
 
 where $p$ is pressure, $u$ is velocity, $E$ is total energy, and $\rho$ is density.
 
-The problem is solved by using the finie difference method. The following Riemann solvers are implemented:
+The problem is solved by using the finie difference method. The following methods are implemented:
 
-- Steger-Warming Riemann solver (Flux vector splitting scheme)
-- Roe Riemann solver (Flux difference splitting scheme)
-
-In adittion, Lax-Wendroff scheme is implemented.
-
-For time integration, the explicit Euler scheme is used. No-flow boundary condition is imposed for left and right boundaries.
+- Riemann solvers
+    - Steger-Warming Riemann solver (Flux vector splitting scheme)
+    - Roe Riemann solver (Flux difference splitting scheme)
+- Spacial reconstruction
+    - 1st-order
+    - Lax-Wendroff
+    - TVD method (Minmod, Superbee, Van Leer, Van Albada)
+- Time integration
+    - Explicit Euler method
+    - Runge-Kutta 2nd-order method
 
 Please refer to [1] for the details of each scheme.
 
