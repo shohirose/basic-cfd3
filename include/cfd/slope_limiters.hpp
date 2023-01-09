@@ -15,7 +15,7 @@ namespace cfd {
 struct MinmodLimiter {
   template <typename Derived>
   static Eigen::ArrayXd eval(const Eigen::ArrayBase<Derived>& r) noexcept {
-    return r.min(1).max(0);
+    return r.min(1.0).max(0.0);
   }
 };
 
