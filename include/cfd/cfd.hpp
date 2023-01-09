@@ -6,6 +6,7 @@
 #include "cfd/flux_solvers.hpp"
 #include "cfd/functions.hpp"
 #include "cfd/problem_parameters.hpp"
+#include "cfd/slope_limiters.hpp"
 #include "cfd/spacial_reconstruction_schemes.hpp"
 #include "cfd/text_file_writer.hpp"
 #include "cfd/time_integration_schemes.hpp"
