@@ -96,6 +96,60 @@ class EulerEquationSimulator1d {
     return (cfl_number_ * dx_) / std::max({up, um, minimum_velocity});
   }
 
+  /**
+   * @brief Convert conservation variables vector to primitive variables vector.
+   *
+   * @tparam Derived
+   * @param U Conservation variables vector
+   * @return Eigen::MatrixXd Primitive variables vector
+   *
+   */
+  template <typename Derived>
+  Eigen::MatrixXd to_primitive_vars(
+      const Eigen::MatrixBase<Derived>& U) const noexcept {
+    using Eigen::Map, Eigen::MatrixXd, Eigen::ArrayXd;
+    MatrixXd V(U.rows(), 3);
+    Map<const ArrayXd> rho(&U(0, 0), U.rows());
+    Map<const ArrayXd> rhou(&U(0, 1), U.rows());
+    Map<const ArrayXd> rhoE(&U(0, 2), U.rows());
+
+    // Density
+    V.col(0) = rho.matrix();
+    // Velocity
+    V.col(1) = (rhou / rho).matrix();
+    // Pressure
+    V.col(2) = (gamma_ - 1.0) * (rhoE - 0.5 * rhou.square() / rho).matrix();
+
+    return V;
+  }
+
+  /**
+   * @brief Convert primitive varialbes vector to conservation variables vector.
+   *
+   * @tparam Derived
+   * @param V Primitive variables vector
+   * @return Eigen::MatrixXd Conservation variables vector
+   *
+   */
+  template <typename Derived>
+  Eigen::MatrixXd to_conservation_vars(
+      const Eigen::MatrixBase<Derived>& V) const noexcept {
+    using Eigen::Map, Eigen::MatrixXd, Eigen::ArrayXd;
+    MatrixXd U(V.rows(), 3);
+    Map<const ArrayXd> rho(&V(0, 0), V.rows());
+    Map<const ArrayXd> u(&V(0, 1), V.rows());
+    Map<const ArrayXd> p(&V(0, 2), V.rows());
+
+    // Density
+    U.col(0) = rho;
+    // Momentum density
+    U.col(1) = rho * u;
+    // Total energy density
+    U.col(2) = 0.5 * rho * u + p / (gamma_ - 1.0);
+
+    return U;
+  }
+
   double dx_;                           ///> Grid length
   double gamma_;                        ///> Specific heat ratio
   double tend_;                         ///> End time of a simulation
