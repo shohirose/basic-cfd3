@@ -2,7 +2,6 @@
 #define CFD_EULER_EQUATION_SIMULATOR_1D_HPP
 
 #include "cfd/boundary_conditions.hpp"
-#include "cfd/functions.hpp"
 #include "cfd/problem_parameters.hpp"
 #include "cfd/time_integration_schemes.hpp"
 
@@ -53,7 +52,7 @@ class EulerEquationSimulator1d {
     assert(V.cols() == 3);
     using Eigen::MatrixXd;
 
-    MatrixXd U = to_conservation_vars(V, gamma_);
+    MatrixXd U = this->to_conservation_vars(V);
     boundary_.apply(U);
 
     double t = 0.0;
@@ -70,7 +69,7 @@ class EulerEquationSimulator1d {
       integrator_.update(U, dt, solver_, boundary_);
     }
 
-    return to_primitive_vars(U, gamma_);
+    return this->to_primitive_vars(U);
   }
 
  private:
@@ -88,9 +87,14 @@ class EulerEquationSimulator1d {
   template <typename Derived>
   double calc_timestep_length(
       const Eigen::MatrixBase<Derived>& U) const noexcept {
-    using Eigen::ArrayXd;
+    using Eigen::ArrayXd, Eigen::Map, Eigen::MatrixXd;
     constexpr double minimum_velocity = 0.1;
-    const auto [u, p, c] = calc_velocity_pressure_sonic_velocity(U, gamma_);
+    Map<const ArrayXd> rho(&U(0, 0), U.rows());
+    Map<const ArrayXd> rhou(&U(0, 1), U.rows());
+    Map<const ArrayXd> rhoE(&U(0, 2), U.rows());
+    const ArrayXd u = rhou / rho;
+    const ArrayXd p = (gamma_ - 1.0) * (rhoE - 0.5 * rhou.square() / rho);
+    const ArrayXd c = (gamma_ * p / rho).sqrt();
     const auto up = (u + c).abs().maxCoeff();
     const auto um = (u - c).abs().maxCoeff();
     return (cfl_number_ * dx_) / std::max({up, um, minimum_velocity});
@@ -150,15 +154,15 @@ class EulerEquationSimulator1d {
     return U;
   }
 
-  double dx_;                           ///> Grid length
-  double gamma_;                        ///> Specific heat ratio
-  double tend_;                         ///> End time of a simulation
-  double cfl_number_;                   ///> CFL number
-  int n_boundary_cells_;                ///> Number of boundary cells
-  int n_domain_cells_;                  ///> Number of domain cells
-  NoFlowBoundary boundary_;             ///> Boundary condition
-  FluxSolver solver_;                   ///> Flux solver
-  ExplicitEulerScheme integrator_;      ///> Time integration scheme
+  double dx_;                       ///> Grid length
+  double gamma_;                    ///> Specific heat ratio
+  double tend_;                     ///> End time of a simulation
+  double cfl_number_;               ///> CFL number
+  int n_boundary_cells_;            ///> Number of boundary cells
+  int n_domain_cells_;              ///> Number of domain cells
+  NoFlowBoundary boundary_;         ///> Boundary condition
+  FluxSolver solver_;               ///> Flux solver
+  ExplicitEulerScheme integrator_;  ///> Time integration scheme
 };
 
 template <typename FluxSolver>

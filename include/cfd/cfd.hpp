@@ -4,7 +4,6 @@
 #include "cfd/boundary_conditions.hpp"
 #include "cfd/euler_equation_simulator_1d.hpp"
 #include "cfd/flux_solvers.hpp"
-#include "cfd/functions.hpp"
 #include "cfd/problem_parameters.hpp"
 #include "cfd/slope_limiters.hpp"
 #include "cfd/spacial_reconstruction_schemes.hpp"
