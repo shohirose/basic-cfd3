@@ -67,8 +67,7 @@ class EulerEquationSimulator1d {
       tsteps += 1;
       t += dt;
 
-      integrator_.update(U, dt, solver_);
-      boundary_.apply(U);
+      integrator_.update(U, dt, solver_, boundary_);
     }
 
     return to_primitive_vars(U, gamma_);
