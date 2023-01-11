@@ -4,6 +4,7 @@
 #include <Eigen/Core>
 #include <tuple>
 
+#include "cfd/functions.hpp"
 #include "cfd/problem_parameters.hpp"
 
 namespace cfd {
@@ -59,9 +60,9 @@ class StegerWarmingRiemannSolver {
     Map<const ArrayXd> rhou(&U(0, 1), U.rows());
     Map<const ArrayXd> rhoE(&U(0, 2), U.rows());
 
-    const ArrayXd u = rhou / rho;
-    const ArrayXd p = (gamma_ - 1) * (rhoE - 0.5 * rho * u.square());
-    const ArrayXd c = (gamma_ * p / rho).sqrt();
+    const ArrayXd u = calc_velocity(rho, rhou);
+    const ArrayXd p = calc_pressure(rho, u, rhoE, gamma_);
+    const ArrayXd c = calc_sonic_velocity(rho, p, gamma_);
 
     const ArrayXd up = u + c;
     const ArrayXd um = u - c;

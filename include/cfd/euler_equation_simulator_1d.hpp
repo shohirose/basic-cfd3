@@ -2,6 +2,7 @@
 #define CFD_EULER_EQUATION_SIMULATOR_1D_HPP
 
 #include "cfd/boundary_conditions.hpp"
+#include "cfd/functions.hpp"
 #include "cfd/problem_parameters.hpp"
 #include "cfd/time_integration_schemes.hpp"
 
@@ -92,9 +93,9 @@ class EulerEquationSimulator1d {
     Map<const ArrayXd> rho(&U(0, 0), U.rows());
     Map<const ArrayXd> rhou(&U(0, 1), U.rows());
     Map<const ArrayXd> rhoE(&U(0, 2), U.rows());
-    const ArrayXd u = rhou / rho;
-    const ArrayXd p = (gamma_ - 1.0) * (rhoE - 0.5 * rhou.square() / rho);
-    const ArrayXd c = (gamma_ * p / rho).sqrt();
+    const ArrayXd u = calc_velocity(rho, rhou);
+    const ArrayXd p = calc_pressure(rho, rhou, rhoE, gamma_);
+    const ArrayXd c = calc_sonic_velocity(rho, p, gamma_);
     const auto up = (u + c).abs().maxCoeff();
     const auto um = (u - c).abs().maxCoeff();
     return (cfl_number_ * dx_) / std::max({up, um, minimum_velocity});
@@ -117,12 +118,9 @@ class EulerEquationSimulator1d {
     Map<const ArrayXd> rhou(&U(0, 1), U.rows());
     Map<const ArrayXd> rhoE(&U(0, 2), U.rows());
 
-    // Density
     V.col(0) = rho.matrix();
-    // Velocity
-    V.col(1) = (rhou / rho).matrix();
-    // Pressure
-    V.col(2) = (gamma_ - 1.0) * (rhoE - 0.5 * rhou.square() / rho).matrix();
+    V.col(1) = rhou / rho;
+    V.col(2) = calc_pressure(rho, V.col(1).array(), rhoE, gamma_).matrix();
 
     return V;
   }
