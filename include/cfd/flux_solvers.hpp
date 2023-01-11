@@ -148,12 +148,12 @@ class RoeRiemannSolver {
 
     const ArrayXd ul = calc_velocity(rhol, rhoul);
     const ArrayXd ur = calc_velocity(rhor, rhour);
-    const ArrayXd pl = calc_pressure(rhol, rhoEl, ul);
-    const ArrayXd pr = calc_pressure(rhor, rhoEr, ur);
-    const ArrayXd hl = calc_enthalpy(rhol, ul, pl);
-    const ArrayXd hr = calc_enthalpy(rhor, ur, pr);
+    const ArrayXd pl = calc_pressure(rhol, ul, rhoEl, gamma_);
+    const ArrayXd pr = calc_pressure(rhor, ur, rhoEr, gamma_);
+    const ArrayXd hl = calc_enthalpy(rhol, rhoEl, pl);
+    const ArrayXd hr = calc_enthalpy(rhor, rhoEr, pr);
     const ArrayXd rho_m = calc_average_density(rhol, rhor);
-    const ArrayXd w = 1 / (1 + (rhor / rhol).sqrt());
+    const ArrayXd w = rhol.sqrt() / (rhol.sqrt() + rhor.sqrt());
     const ArrayXd u_m = calc_average_velocity(ul, ur, w);
     const ArrayXd h_m = calc_average_enthalpy(hl, hr, w);
     const ArrayXd c_m = calc_average_sonic_velocity(h_m, u_m);
@@ -182,29 +182,6 @@ class RoeRiemannSolver {
                        0.5 * (0.5 * x1 * u_m.square() + x2 * (h_m + c_m * u_m) +
                               x3 * (h_m - c_m * u_m));
     return F;
-  }
-
-  template <typename Derived1, typename Derived2>
-  static Eigen::ArrayXd calc_velocity(
-      const Eigen::ArrayBase<Derived1>& rho,
-      const Eigen::ArrayBase<Derived2>& rhou) noexcept {
-    return rhou / rho;
-  }
-
-  template <typename Derived1, typename Derived2, typename Derived3>
-  Eigen::ArrayXd calc_pressure(
-      const Eigen::ArrayBase<Derived1>& rho,
-      const Eigen::ArrayBase<Derived2>& rhoE,
-      const Eigen::ArrayBase<Derived3>& u) const noexcept {
-    return (gamma_ - 1) * (rhoE - 0.5 * rho * u.square());
-  }
-
-  template <typename Derived1, typename Derived2, typename Derived3>
-  Eigen::ArrayXd calc_enthalpy(
-      const Eigen::ArrayBase<Derived1>& rho,
-      const Eigen::ArrayBase<Derived2>& u,
-      const Eigen::ArrayBase<Derived3>& p) const noexcept {
-    return 0.5 * rho * u.square() + p / (gamma_ - 1);
   }
 
   template <typename Derived1, typename Derived2>
