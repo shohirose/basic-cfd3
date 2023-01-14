@@ -147,7 +147,7 @@ class EulerEquationSimulator1d {
     // Momentum density
     U.col(1) = rho * u;
     // Total energy density
-    U.col(2) = 0.5 * rho * u + p / (gamma_ - 1.0);
+    U.col(2) = 0.5 * rho * u.square() + p / (gamma_ - 1.0);
 
     return U;
   }
