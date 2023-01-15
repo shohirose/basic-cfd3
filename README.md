@@ -66,7 +66,7 @@ For Windows, if simulators are created just under the "build" folder, you can ju
 $ .\run_all.ps1
 ```
 
-If simulators are created under either "Release" or "Debug" folder, you should add "-Release" or "-Debug" option. For example:
+If simulators are created under either "Release" or "Debug" folder in the "build" folder, you should add "-Release" or "-Debug" option. For example:
 
 ```
 $ .\run_all.ps1 -Release
