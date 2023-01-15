@@ -10,9 +10,9 @@ namespace cfd {
 
 class LaxWendroffSolver;
 
-class ExplicitEulerScheme {
+class ExplicitEulerTimeIntegration {
  public:
-  ExplicitEulerScheme(const ProblemParameters& params)
+  ExplicitEulerTimeIntegration(const ProblemParameters& params)
       : dx_{params.dx},
         n_boundary_cells_{params.n_bounary_cells},
         n_domain_cells_{params.n_domain_cells} {}
@@ -24,6 +24,7 @@ class ExplicitEulerScheme {
    * @param U[in,out] Conservation variables vector
    * @param dt[in] Time step length
    * @param solver[in] Numerical flux solver
+   * @param boundary[in] Boundary condition
    */
   template <typename Derived, typename FluxSolver, typename Boundary>
   void update(Eigen::MatrixBase<Derived>& U, double dt,
@@ -62,6 +63,7 @@ class RungeKutta2ndOrderTimeIntegration {
    * @param U[in,out] Conservation variables vector
    * @param dt[in] Time step length
    * @param solver[in] Numerical flux solver
+   * @param boundary[in] Boundary condition
    */
   template <typename Derived, typename FluxSolver, typename Boundary>
   void update(Eigen::MatrixBase<Derived>& U, double dt,
@@ -79,15 +81,14 @@ class RungeKutta2ndOrderTimeIntegration {
 
     // First step
     const MatrixXd F1 = solver.calc_flux(U);
-    const MatrixXd Lh1 = (1 / dx_) * (F1.topRows(n) - F1.bottomRows(n));
-    const MatrixXd U1 = MatrixXd::Zero(ntotal, 3);
-    U1(rng, all) = U(rng, all) + Lh1 * dt;
+    const MatrixXd dU1 = (dt / dx_) * (F1.topRows(n) - F1.bottomRows(n));
+    MatrixXd U1 = U(rng, all) + dU1;
     boundary.apply(U1);
 
     // Second step
     const MatrixXd F2 = solver.calc_flux(U1);
-    const MatrixXd Lh2 = (1 / dx_) * (F2.topRows(n) - F2.bottomRows(n));
-    U(rng, all) += (0.5 / dt) * (Lh1 + Lh2);
+    const MatrixXd dU2 = (dt / dx_) * (F2.topRows(n) - F2.bottomRows(n));
+    U(rng, all) += 0.5 * (dU1 + dU2);
     boundary.apply(U);
   }
 
