@@ -7,15 +7,13 @@ using Eigen::VectorXd, Eigen::seqN;
 
 using FluxSolver = cfd::StegerWarmingRiemannSolver<
     cfd::TvdSpacialReconstructor<cfd::VanLeerLimiter>>;
-using Simulator = cfd::EulerEquationSimulator1d<FluxSolver>;
-
-Simulator make_simulator(const cfd::ProblemParameters& params) {
-  return {params, FluxSolver{params}};
-}
+using Simulator =
+    cfd::EulerEquationSimulator1d<FluxSolver,
+                                  cfd::RungeKutta2ndOrderTimeIntegration>;
 
 int main(int argc, char** argv) {
   const auto params = make_parameters();
-  const auto simulator = make_simulator(params);
+  const auto simulator = Simulator{params};
   const auto V0 = make_initial_condition(params);
   const auto Vn = simulator.run(V0);
 

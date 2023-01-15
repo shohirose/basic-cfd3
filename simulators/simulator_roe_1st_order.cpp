@@ -6,16 +6,12 @@ namespace fs = std::filesystem;
 using Eigen::VectorXd, Eigen::seqN;
 
 using Simulator = cfd::EulerEquationSimulator1d<
-    cfd::RoeRiemannSolver<cfd::FirstOrderSpacialReconstructor>>;
-
-Simulator make_simulator(const cfd::ProblemParameters& params) {
-  return {params,
-          cfd::RoeRiemannSolver<cfd::FirstOrderSpacialReconstructor>{params}};
-}
+    cfd::RoeRiemannSolver<cfd::FirstOrderSpacialReconstructor>,
+    cfd::ExplicitEulerTimeIntegration>;
 
 int main(int argc, char** argv) {
   const auto params = make_parameters();
-  const auto simulator = make_simulator(params);
+  const auto simulator = Simulator{params};
   const auto V0 = make_initial_condition(params);
   const auto Vn = simulator.run(V0);
 
