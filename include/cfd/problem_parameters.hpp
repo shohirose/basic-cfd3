@@ -8,6 +8,7 @@ struct ProblemParameters {
   double specific_heat_ratio;
   double tend;
   double cfl_number;
+  double minimum_velocity;
   int n_bounary_cells;
   int n_domain_cells;
 

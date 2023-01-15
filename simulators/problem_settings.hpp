@@ -33,6 +33,7 @@ inline cfd::ProblemParameters make_parameters() {
       1.4,   // Specific heat ratio
       0.48,  // Time end
       0.4,   // CFL number
+      0.1,   // Minimum velocity for timestep calculation
       2,     // Number of boundary cells
       100,   // Number of domain cells
   };

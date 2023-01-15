@@ -5,6 +5,7 @@
 #include "cfd/functions.hpp"
 #include "cfd/problem_parameters.hpp"
 #include "cfd/time_integration_schemes.hpp"
+#include "cfd/timestep_length_calculator.hpp"
 
 namespace cfd {
 
@@ -22,12 +23,12 @@ class EulerEquationSimulator1d {
       : dx_{params.dx},
         gamma_{params.specific_heat_ratio},
         tend_{params.tend},
-        cfl_number_{params.cfl_number},
         n_boundary_cells_{params.n_bounary_cells},
         n_domain_cells_{params.n_domain_cells},
         boundary_{params},
         solver_{solver},
-        integrator_{params} {}
+        integrator_{params},
+        timestep_{params} {}
 
   /**
    * @brief Run a simulation case.
@@ -60,7 +61,7 @@ class EulerEquationSimulator1d {
     int tsteps = 0;
 
     while (t < tend_) {
-      auto dt = this->calc_timestep_length(U);
+      auto dt = timestep_.compute(U);
       if (t + dt > tend_) {
         dt = tend_ - t;
       }
@@ -76,29 +77,6 @@ class EulerEquationSimulator1d {
  private:
   int total_cells() const noexcept {
     return 2 * n_boundary_cells_ + n_domain_cells_;
-  }
-
-  /**
-   * @brief Compute time step length based on CFL number.
-   *
-   * @tparam Derived
-   * @param U Conservation variables vector
-   * @return double Time step length
-   */
-  template <typename Derived>
-  double calc_timestep_length(
-      const Eigen::MatrixBase<Derived>& U) const noexcept {
-    using Eigen::ArrayXd, Eigen::Map, Eigen::MatrixXd;
-    constexpr double minimum_velocity = 0.1;
-    Map<const ArrayXd> rho(&U(0, 0), U.rows());
-    Map<const ArrayXd> rhou(&U(0, 1), U.rows());
-    Map<const ArrayXd> rhoE(&U(0, 2), U.rows());
-    const ArrayXd u = calc_velocity(rho, rhou);
-    const ArrayXd p = calc_pressure(rho, rhou, rhoE, gamma_);
-    const ArrayXd c = calc_sonic_velocity(rho, p, gamma_);
-    const auto up = (u + c).abs().maxCoeff();
-    const auto um = (u - c).abs().maxCoeff();
-    return (cfl_number_ * dx_) / std::max({up, um, minimum_velocity});
   }
 
   /**
@@ -155,12 +133,12 @@ class EulerEquationSimulator1d {
   double dx_;                       ///> Grid length
   double gamma_;                    ///> Specific heat ratio
   double tend_;                     ///> End time of a simulation
-  double cfl_number_;               ///> CFL number
   int n_boundary_cells_;            ///> Number of boundary cells
   int n_domain_cells_;              ///> Number of domain cells
   NoFlowBoundary boundary_;         ///> Boundary condition
   FluxSolver solver_;               ///> Flux solver
   ExplicitEulerScheme integrator_;  ///> Time integration scheme
+  TimestepLengthCalculator timestep_;
 };
 
 template <typename FluxSolver>
