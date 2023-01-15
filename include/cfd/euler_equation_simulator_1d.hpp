@@ -12,21 +12,20 @@ namespace cfd {
 /**
  * @brief 1-D Euler equation simulator.
  *
- * @tparam SpacialReconstructor Spacial reconstruction scheme
- * @tparam RiemannSolver Riemann solver
+ * @tparam FluxSolver Flux calculator at cell interfaces
+ * @tparam TimeIntegrator Time integrator
  */
-template <typename FluxSolver>
+template <typename FluxSolver, typename TimeIntegrator>
 class EulerEquationSimulator1d {
  public:
-  EulerEquationSimulator1d(const ProblemParameters& params,
-                           const FluxSolver& solver)
+  EulerEquationSimulator1d(const ProblemParameters& params)
       : dx_{params.dx},
         gamma_{params.specific_heat_ratio},
         tend_{params.tend},
         n_boundary_cells_{params.n_bounary_cells},
         n_domain_cells_{params.n_domain_cells},
         boundary_{params},
-        solver_{solver},
+        solver_{params},
         integrator_{params},
         timestep_{params} {}
 
@@ -130,22 +129,16 @@ class EulerEquationSimulator1d {
     return U;
   }
 
-  double dx_;                       ///> Grid length
-  double gamma_;                    ///> Specific heat ratio
-  double tend_;                     ///> End time of a simulation
-  int n_boundary_cells_;            ///> Number of boundary cells
-  int n_domain_cells_;              ///> Number of domain cells
-  NoFlowBoundary boundary_;         ///> Boundary condition
-  FluxSolver solver_;               ///> Flux solver
-  ExplicitEulerScheme integrator_;  ///> Time integration scheme
+  double dx_;                  ///> Grid length
+  double gamma_;               ///> Specific heat ratio
+  double tend_;                ///> End time of a simulation
+  int n_boundary_cells_;       ///> Number of boundary cells
+  int n_domain_cells_;         ///> Number of domain cells
+  NoFlowBoundary boundary_;    ///> Boundary condition
+  FluxSolver solver_;          ///> Flux solver
+  TimeIntegrator integrator_;  ///> Time integration scheme
   TimestepLengthCalculator timestep_;
 };
-
-template <typename FluxSolver>
-EulerEquationSimulator1d<FluxSolver> make_simulator(
-    const ProblemParameters& params, const FluxSolver& solver) {
-  return {params, solver};
-}
 
 }  // namespace cfd
 
