@@ -4,7 +4,6 @@
 #include "cfd/boundary_conditions.hpp"
 #include "cfd/functions.hpp"
 #include "cfd/problem_parameters.hpp"
-#include "cfd/time_integration_schemes.hpp"
 #include "cfd/timestep_length_calculator.hpp"
 
 namespace cfd {
@@ -12,7 +11,7 @@ namespace cfd {
 /**
  * @brief 1-D Euler equation simulator.
  *
- * @tparam FluxSolver Flux calculator at cell interfaces
+ * @tparam FluxCalculator Flux calculator at cell interfaces
  * @tparam TimeIntegrator Time integrator
  */
 template <typename FluxCalculator, typename TimeIntegrator>
@@ -25,7 +24,7 @@ class EulerEquationSimulator1d {
         n_boundary_cells_{params.n_bounary_cells},
         n_domain_cells_{params.n_domain_cells},
         boundary_{params},
-        solver_{params},
+        flux_{params},
         integrator_{params},
         timestep_{params} {}
 
@@ -67,7 +66,7 @@ class EulerEquationSimulator1d {
       tsteps += 1;
       t += dt;
 
-      integrator_.update(U, dt, solver_, boundary_);
+      integrator_.update(U, dt, flux_, boundary_);
     }
 
     return this->to_primitive_vars(U);
@@ -135,7 +134,7 @@ class EulerEquationSimulator1d {
   int n_boundary_cells_;       ///> Number of boundary cells
   int n_domain_cells_;         ///> Number of domain cells
   NoFlowBoundary boundary_;    ///> Boundary condition
-  FluxCalculator solver_;      ///> Flux solver
+  FluxCalculator flux_;        ///> Flux solver
   TimeIntegrator integrator_;  ///> Time integration scheme
   TimestepLengthCalculator timestep_;
 };
