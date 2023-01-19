@@ -36,7 +36,12 @@ The problem is solved by using the finie difference method. The following method
 - Spacial reconstruction
     - 1st-order
     - Lax-Wendroff
-    - TVD method (Minmod, Superbee, Van Leer, Van Albada)
+    - TVD method
+- Slope limiters for TVD method
+    -  Minmod
+    -  Superbee
+    -  van Leer
+    -  van Albada
 - Time integration
     - Explicit Euler method
     - Runge-Kutta 2nd-order method
