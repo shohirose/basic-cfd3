@@ -1,11 +1,7 @@
-#ifndef CFD_FLUX_SOLVERS_HPP
-#define CFD_FLUX_SOLVERS_HPP
+#ifndef CFD_RIEMANN_SOLVERS_HPP
+#define CFD_RIEMANN_SOLVERS_HPP
 
 #include <Eigen/Core>
-#include <tuple>
-
-#include "cfd/functions.hpp"
-#include "cfd/problem_parameters.hpp"
 
 namespace cfd {
 
@@ -27,18 +23,25 @@ struct NegativeFlux {
 
 }  // namespace detail
 
-template <typename SpacialReconstructor>
 class StegerWarmingRiemannSolver {
  public:
   StegerWarmingRiemannSolver(const ProblemParameters& params)
-      : gamma_{params.specific_heat_ratio}, reconstructor_{params} {}
+      : gamma_{params.specific_heat_ratio} {}
 
-  template <typename Derived>
+  /**
+   * @brief Compute flux
+   *
+   * @tparam Derived1
+   * @tparam Derived2
+   * @param Ul Conservation variables at the LHS of cell interfaces
+   * @param Ur Conservation variables at the RHS of cell interfaces
+   * @return Eigen::MatrixXd Flux at cell interfaces
+   */
+  template <typename Derived1, typename Derived2>
   Eigen::MatrixXd calc_flux(
-      const Eigen::MatrixBase<Derived>& U) const noexcept {
+      const Eigen::MatrixBase<Derived1>& Ul,
+      const Eigen::MatrixBase<Derived2>& Ur) const noexcept {
     using Eigen::MatrixXd;
-    const MatrixXd Ul = reconstructor_.calc_left(U);
-    const MatrixXd Ur = reconstructor_.calc_right(U);
     const MatrixXd Fp = this->calc_flux_impl(Ul, detail::PositiveFlux{});
     const MatrixXd Fm = this->calc_flux_impl(Ur, detail::NegativeFlux{});
     return Fp + Fm;
@@ -48,7 +51,7 @@ class StegerWarmingRiemannSolver {
   /**
    * @brief Compute positive numerical flux
    *
-   * @param U Conservation variables vector at the LHS of cell interfaces
+   * @param U Conservation variables vector at cell interfaces
    * @return Eigen::MatrixXd Numerical flux vector
    */
   template <typename Derived, typename F>
@@ -85,55 +88,24 @@ class StegerWarmingRiemannSolver {
   }
 
   double gamma_;  ///> Specific heat ratio
-  SpacialReconstructor reconstructor_;
 };
 
-template <typename SpacialReconstructor>
 class RoeRiemannSolver {
  public:
   RoeRiemannSolver(const ProblemParameters& params)
-      : gamma_{params.specific_heat_ratio}, reconstructor_{params} {}
+      : gamma_{params.specific_heat_ratio} {}
 
   /**
    * @brief Compute numerical flux vector
-   *
-   * @tparam Derived
-   * @param U Conservation variables
-   * @return Eigen::MatrixXd Numerical flux
-   */
-  template <typename Derived>
-  Eigen::MatrixXd calc_flux(
-      const Eigen::MatrixBase<Derived>& U) const noexcept {
-    using Eigen::MatrixXd;
-    const MatrixXd Ul = reconstructor_.calc_left(U);
-    const MatrixXd Ur = reconstructor_.calc_right(U);
-    return this->calc_flux_impl(Ul, Ur);
-  }
-
- private:
-  /**
-   * @brief Compute numerical flux
    *
    * @tparam Derived1
    * @tparam Derived2
    * @param Ul Conservation variables vector at the LHS of cell interfaces
    * @param Ur Conservation variables vector at the RHS of cell interfaces
    * @return Eigen::MatrixXd Numerical flux vector
-   *
-   * Ul and Ur have a shape of (n_domain_cells + 1, 3). Each column contains
-   * density, moment density, and total energy density, respectively.
-   *
-   * U(:, 0) = density
-   * U(:, 1) = moment density
-   * U(:, 2) = total energy density
-   *
-   * F has a shape of (n_domain_cells + 1, 3). Each column contains
-   * @f$ \rho u \f$, @f$ \rho u^2 + p @f$, and @f$ u (E^t + p) @f$, where
-   * @f$ u @f$ is velocity, @f$ \rho @f$ is density, @f$ p @f$ is pressure,
-   * and @f$ E^t @f$ is total energy density.
    */
   template <typename Derived1, typename Derived2>
-  Eigen::MatrixXd calc_flux_impl(
+  Eigen::MatrixXd calc_flux(
       const Eigen::MatrixBase<Derived1>& Ul,
       const Eigen::MatrixBase<Derived2>& Ur) const noexcept {
     using Eigen::ArrayXd, Eigen::MatrixXd, Eigen::Map;
@@ -184,6 +156,7 @@ class RoeRiemannSolver {
     return F;
   }
 
+ private:
   template <typename Derived1, typename Derived2>
   static Eigen::ArrayXd calc_average_density(
       const Eigen::ArrayBase<Derived1>& rhol,
@@ -224,59 +197,8 @@ class RoeRiemannSolver {
   }
 
   double gamma_;  ///> Specific heat ratio
-  SpacialReconstructor reconstructor_;
-};
-
-class LaxWendroffSolver {
- public:
-  LaxWendroffSolver(const ProblemParameters& params)
-      : dx_{params.dx},
-        gamma_{params.specific_heat_ratio},
-        n_boundary_cells_{params.n_bounary_cells},
-        n_domain_cells_{params.n_domain_cells} {}
-
-  template <typename Derived>
-  Eigen::MatrixXd calc_flux(const Eigen::MatrixBase<Derived>& U,
-                            double dt) const noexcept {
-    using Eigen::ArrayXd, Eigen::MatrixXd, Eigen::seqN, Eigen::Map;
-
-    Map<const ArrayXd> rho(&U(0, 0), U.rows());
-    Map<const ArrayXd> rhou(&U(0, 1), U.rows());
-    Map<const ArrayXd> rhoE(&U(0, 2), U.rows());
-
-    const auto i = n_boundary_cells_;
-    const auto n = n_domain_cells_ + 1;
-    const auto rng1 = seqN(i, n);
-    const auto rng2 = seqN(i - 1, n);
-
-    const ArrayXd rho_m = 0.5 * (rho(rng1) + rho(rng2)) -
-                          (0.5 * dt / dx_) * (rhou(rng1) - rhou(rng2));
-
-    const ArrayXd u = rhou / rho;
-    const ArrayXd p = (gamma_ - 1) * (rhoE - 0.5 * rho * u.square());
-    const ArrayXd f = rhou * u + p;
-    const ArrayXd rhou_m = 0.5 * (rhou(rng1) + rhou(rng2)) -
-                           (0.5 * dt / dx_) * (f(rng1) - f(rng2));
-    const ArrayXd g = u * (rhoE + p);
-    const ArrayXd rhoE_m = 0.5 * (rhoE(rng1) + rhoE(rng2)) -
-                           (0.5 * dt / dx_) * (g(rng1) - g(rng2));
-    const ArrayXd u_m = rhou_m / rho_m;
-    const ArrayXd p_m = (gamma_ - 1) * (rhoE_m - 0.5 * rho_m * u_m.square());
-
-    MatrixXd F(n, 3);
-    F.col(0) = rhou_m.matrix();
-    F.col(1) = (rhou_m * u_m + p_m).matrix();
-    F.col(2) = (u_m * (rhoE_m + p_m)).matrix();
-    return F;
-  }
-
- private:
-  double dx_;
-  double gamma_;
-  int n_boundary_cells_;
-  int n_domain_cells_;
 };
 
 }  // namespace cfd
 
-#endif  // CFD_FLUX_SOLVERS_HPP
+#endif  // CFD_RIEMANN_SOLVERS_HPP

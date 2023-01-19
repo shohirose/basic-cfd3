@@ -6,8 +6,8 @@ namespace fs = std::filesystem;
 using Eigen::VectorXd, Eigen::seqN;
 
 using Simulator =
-    cfd::EulerEquationSimulator1d<cfd::LaxWendroffSolver,
-                                  cfd::ExplicitEulerTimeIntegration>;
+    cfd::EulerEquationSimulator1d<cfd::LaxWendroffFluxCalculator,
+                                  cfd::ExplicitEulerTimeIntegrator>;
 
 int main(int argc, char** argv) {
   const auto params = make_parameters();

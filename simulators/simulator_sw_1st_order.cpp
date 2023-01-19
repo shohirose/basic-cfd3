@@ -6,9 +6,9 @@ namespace fs = std::filesystem;
 using Eigen::VectorXd, Eigen::seqN;
 
 using Simulator = cfd::EulerEquationSimulator1d<
-    cfd::StegerWarmingRiemannSolver<cfd::FirstOrderSpacialReconstructor>,
-    cfd::ExplicitEulerTimeIntegration>;
-
+    cfd::RiemannFluxCalculator<cfd::FirstOrderSpacialReconstructor,
+                               cfd::StegerWarmingRiemannSolver>,
+    cfd::ExplicitEulerTimeIntegrator>;
 
 int main(int argc, char** argv) {
   const auto params = make_parameters();

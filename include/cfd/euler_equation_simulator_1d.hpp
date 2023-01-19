@@ -15,7 +15,7 @@ namespace cfd {
  * @tparam FluxSolver Flux calculator at cell interfaces
  * @tparam TimeIntegrator Time integrator
  */
-template <typename FluxSolver, typename TimeIntegrator>
+template <typename FluxCalculator, typename TimeIntegrator>
 class EulerEquationSimulator1d {
  public:
   EulerEquationSimulator1d(const ProblemParameters& params)
@@ -135,7 +135,7 @@ class EulerEquationSimulator1d {
   int n_boundary_cells_;       ///> Number of boundary cells
   int n_domain_cells_;         ///> Number of domain cells
   NoFlowBoundary boundary_;    ///> Boundary condition
-  FluxSolver solver_;          ///> Flux solver
+  FluxCalculator solver_;      ///> Flux solver
   TimeIntegrator integrator_;  ///> Time integration scheme
   TimestepLengthCalculator timestep_;
 };

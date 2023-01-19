@@ -8,11 +8,11 @@
 
 namespace cfd {
 
-class LaxWendroffSolver;
+class LaxWendroffFluxCalculator;
 
-class ExplicitEulerTimeIntegration {
+class ExplicitEulerTimeIntegrator {
  public:
-  ExplicitEulerTimeIntegration(const ProblemParameters& params)
+  ExplicitEulerTimeIntegrator(const ProblemParameters& params)
       : dx_{params.dx},
         n_boundary_cells_{params.n_bounary_cells},
         n_domain_cells_{params.n_domain_cells} {}
@@ -26,18 +26,18 @@ class ExplicitEulerTimeIntegration {
    * @param solver[in] Numerical flux solver
    * @param boundary[in] Boundary condition
    */
-  template <typename Derived, typename FluxSolver, typename Boundary>
+  template <typename Derived, typename FluxCalculator, typename Boundary>
   void update(Eigen::MatrixBase<Derived>& U, double dt,
-              const FluxSolver& solver,
+              const FluxCalculator& flux,
               const Boundary& boundary) const noexcept {
     using Eigen::all, Eigen::seqN, Eigen::MatrixXd;
     const auto i = n_boundary_cells_;
     const auto n = n_domain_cells_;
-    if constexpr (std::is_same_v<FluxSolver, LaxWendroffSolver>) {
-      const MatrixXd F = solver.calc_flux(U, dt);
+    if constexpr (std::is_same_v<FluxCalculator, LaxWendroffFluxCalculator>) {
+      const MatrixXd F = flux.compute(U, dt);
       U(seqN(i, n), all) -= (dt / dx_) * (F.bottomRows(n) - F.topRows(n));
     } else {
-      const MatrixXd F = solver.calc_flux(U);
+      const MatrixXd F = flux.compute(U);
       U(seqN(i, n), all) -= (dt / dx_) * (F.bottomRows(n) - F.topRows(n));
     }
     boundary.apply(U);
@@ -49,9 +49,9 @@ class ExplicitEulerTimeIntegration {
   int n_domain_cells_;    ///> Number of domain cells
 };
 
-class RungeKutta2ndOrderTimeIntegration {
+class RungeKutta2ndOrderTimeIntegrator {
  public:
-  RungeKutta2ndOrderTimeIntegration(const ProblemParameters& params)
+  RungeKutta2ndOrderTimeIntegrator(const ProblemParameters& params)
       : dx_{params.dx},
         n_boundary_cells_{params.n_bounary_cells},
         n_domain_cells_{params.n_domain_cells} {}
@@ -65,12 +65,12 @@ class RungeKutta2ndOrderTimeIntegration {
    * @param solver[in] Numerical flux solver
    * @param boundary[in] Boundary condition
    */
-  template <typename Derived, typename FluxSolver, typename Boundary>
+  template <typename Derived, typename FluxCalculator, typename Boundary>
   void update(Eigen::MatrixBase<Derived>& U, double dt,
-              const FluxSolver& solver,
+              const FluxCalculator& flux,
               const Boundary& boundary) const noexcept {
-    static_assert(!std::is_same_v<FluxSolver, LaxWendroffSolver>,
-                  "LaxWendroffSolver cannot be used.");
+    static_assert(!std::is_same_v<FluxCalculator, LaxWendroffFluxCalculator>,
+                  "LaxWendroffFluxCalculator cannot be used.");
 
     using Eigen::all, Eigen::seqN, Eigen::MatrixXd;
 
@@ -80,13 +80,13 @@ class RungeKutta2ndOrderTimeIntegration {
     const auto rng = seqN(i, n);
 
     // First step
-    const MatrixXd F1 = solver.calc_flux(U);
+    const MatrixXd F1 = flux.compute(U);
     const MatrixXd dU1 = (dt / dx_) * (F1.topRows(n) - F1.bottomRows(n));
     MatrixXd U1 = U(rng, all) + dU1;
     boundary.apply(U1);
 
     // Second step
-    const MatrixXd F2 = solver.calc_flux(U1);
+    const MatrixXd F2 = flux.compute(U1);
     const MatrixXd dU2 = (dt / dx_) * (F2.topRows(n) - F2.bottomRows(n));
     U(rng, all) += 0.5 * (dU1 + dU2);
     boundary.apply(U);

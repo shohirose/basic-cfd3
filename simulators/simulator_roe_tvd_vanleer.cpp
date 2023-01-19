@@ -5,11 +5,11 @@ namespace fs = std::filesystem;
 
 using Eigen::VectorXd, Eigen::seqN;
 
-using FluxSolver =
-    cfd::RoeRiemannSolver<cfd::TvdSpacialReconstructor<cfd::VanLeerLimiter>>;
-using Simulator =
-    cfd::EulerEquationSimulator1d<FluxSolver,
-                                  cfd::RungeKutta2ndOrderTimeIntegration>;
+using Simulator = cfd::EulerEquationSimulator1d<
+    cfd::RiemannFluxCalculator<
+        cfd::TvdSpacialReconstructor<cfd::VanLeerLimiter>,
+        cfd::RoeRiemannSolver>,
+    cfd::RungeKutta2ndOrderTimeIntegrator>;
 
 int main(int argc, char** argv) {
   const auto params = make_parameters();
