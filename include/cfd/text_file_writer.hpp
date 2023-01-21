@@ -22,9 +22,8 @@ class TextFileWriter {
   /**
    * @brief Write data to a file.
    *
-   * @tparam Derived
-   * @param x Data
-   * @param filename File name
+   * @param x[in] Data
+   * @param filename[in] File name
    */
   template <typename Derived>
   void write(const Eigen::MatrixBase<Derived>& x,

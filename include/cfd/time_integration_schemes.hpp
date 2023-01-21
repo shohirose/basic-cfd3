@@ -10,6 +10,10 @@ namespace cfd {
 
 class LaxWendroffFluxCalculator;
 
+/**
+ * @brief Explicit Euler time integration method (first-order).
+ *
+ */
 class ExplicitEulerTimeIntegrator {
  public:
   ExplicitEulerTimeIntegrator(const ProblemParameters& params)
@@ -20,8 +24,7 @@ class ExplicitEulerTimeIntegrator {
   /**
    * @brief Update variables using the explicit Euler method.
    *
-   * @tparam Derived
-   * @param U[in,out] Conservation variables vector
+   * @param U[in,out] Conservation variables
    * @param dt[in] Time step length
    * @param solver[in] Numerical flux solver
    * @param boundary[in] Boundary condition
@@ -49,6 +52,10 @@ class ExplicitEulerTimeIntegrator {
   int n_domain_cells_;    ///> Number of domain cells
 };
 
+/**
+ * @brief Second-order Runge-Kutta time integartion.
+ *
+ */
 class RungeKutta2ndOrderTimeIntegrator {
  public:
   RungeKutta2ndOrderTimeIntegrator(const ProblemParameters& params)
@@ -59,8 +66,7 @@ class RungeKutta2ndOrderTimeIntegrator {
   /**
    * @brief Update conservation variables.
    *
-   * @tparam Derived
-   * @param U[in,out] Conservation variables vector
+   * @param U[in,out] Conservation variables
    * @param dt[in] Time step length
    * @param solver[in] Numerical flux solver
    * @param boundary[in] Boundary condition

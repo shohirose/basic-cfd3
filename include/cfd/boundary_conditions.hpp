@@ -19,7 +19,6 @@ class NoFlowBoundary {
   /**
    * @brief Impose no-flow boundary condition
    *
-   * @tparam Derived
    * @param U Conservation variables vector
    *
    * U has a shape of (n_total_cells, 3). Each column contains density, moment
@@ -44,8 +43,8 @@ class NoFlowBoundary {
   }
 
  private:
-  int n_boundary_cells_;
-  int n_domain_cells_;
+  int n_boundary_cells_;  ///> Number of boundary cells
+  int n_domain_cells_;    ///> Number of domain cells
 };
 
 }  // namespace cfd

@@ -23,9 +23,8 @@ class TimestepLengthCalculator {
   /**
    * @brief Compute time step length based on CFL number.
    *
-   * @tparam Derived
-   * @param U Conservation variables vector
-   * @return double Time step length
+   * @param U Conservation variables
+   * @return Time step length
    */
   template <typename Derived>
   double compute(const Eigen::MatrixBase<Derived>& U) const noexcept {
@@ -41,10 +40,10 @@ class TimestepLengthCalculator {
   }
 
  private:
-  double cfl_number_;
-  double dx_;
-  double minimum_velocity_;
-  double specific_heat_ratio_;
+  double cfl_number_;           ///> CFL number
+  double dx_;                   ///> Grid length
+  double minimum_velocity_;     ///> Minimum velocity to avoid zero division
+  double specific_heat_ratio_;  ///> Specific heat ratio
 };
 
 }  // namespace cfd

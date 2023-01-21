@@ -4,13 +4,14 @@
 namespace cfd {
 
 struct ProblemParameters {
-  double dx;
-  double specific_heat_ratio;
-  double tend;
-  double cfl_number;
-  double minimum_velocity;
-  int n_bounary_cells;
-  int n_domain_cells;
+  double dx;                   ///> Grid length
+  double specific_heat_ratio;  ///> Specific heat ratio
+  double tend;                 ///> Simulation time end
+  double cfl_number;           ///> CFL number for time step length calculation
+  double
+      minimum_velocity;  ///> Minimum velocity for time step length calculation
+  int n_bounary_cells;   ///> Number of boundary cells
+  int n_domain_cells;    ///> Number of domain cells
 
   int n_total_cells() const noexcept {
     return 2 * n_bounary_cells + n_domain_cells;

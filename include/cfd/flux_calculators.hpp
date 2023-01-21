@@ -8,12 +8,24 @@
 
 namespace cfd {
 
+/**
+ * @brief Riemann-solver-based flux calculator
+ *
+ * @tparam SpacialReconstructor
+ * @tparam RiemannSolver
+ */
 template <typename SpacialReconstructor, typename RiemannSolver>
 class RiemannFluxCalculator {
  public:
   RiemannFluxCalculator(const ProblemParameters& params)
       : reconstructor_{params}, solver_{params} {}
 
+  /**
+   * @brief Compute flux
+   *
+   * @param U Conservation variables
+   * @return Flux
+   */
   template <typename Derived>
   Eigen::MatrixXd compute(const Eigen::MatrixBase<Derived>& U) const noexcept {
     using Eigen::MatrixXd;
@@ -35,6 +47,13 @@ class LaxWendroffFluxCalculator {
         n_boundary_cells_{params.n_bounary_cells},
         n_domain_cells_{params.n_domain_cells} {}
 
+  /**
+   * @brief Compute flux
+   *
+   * @param U Conservation variables
+   * @param dt Time step length
+   * @return Flux
+   */
   template <typename Derived>
   Eigen::MatrixXd compute(const Eigen::MatrixBase<Derived>& U,
                           double dt) const noexcept {
@@ -71,10 +90,10 @@ class LaxWendroffFluxCalculator {
   }
 
  private:
-  double dx_;
-  double gamma_;
-  int n_boundary_cells_;
-  int n_domain_cells_;
+  double dx_;             ///> Grid length
+  double gamma_;          ///> Specific heat ratio
+  int n_boundary_cells_;  ///> Number of boundary cells
+  int n_domain_cells_;    ///> Number of domain cells
 };
 
 }  // namespace cfd

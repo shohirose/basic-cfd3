@@ -8,12 +8,22 @@
 
 namespace cfd {
 
+/**
+ * @brief First-order spacial reconstruction scheme.
+ *
+ */
 class FirstOrderSpacialReconstructor {
  public:
   FirstOrderSpacialReconstructor(const ProblemParameters& params)
       : n_boundary_cells_{params.n_bounary_cells},
         n_domain_cells_{params.n_domain_cells} {}
 
+  /**
+   * @brief Compute numerical flux at LHS of cell interfaces
+   *
+   * @param U Conservation variables
+   * @return Numerical flux at LHS of cells interfaces
+   */
   template <typename Derived>
   Eigen::MatrixXd calc_left(
       const Eigen::MatrixBase<Derived>& U) const noexcept {
@@ -24,6 +34,12 @@ class FirstOrderSpacialReconstructor {
     return U(seqN(n_boundary_cells_ - 1, n_domain_cells_ + 1), all);
   }
 
+  /**
+   * @brief Compute numerical flux at RHS of cell interfaces
+   *
+   * @param U Conservation variables
+   * @return Numerical flux at RHS of cells interfaces
+   */
   template <typename Derived>
   Eigen::MatrixXd calc_right(
       const Eigen::MatrixBase<Derived>& U) const noexcept {
@@ -39,6 +55,12 @@ class FirstOrderSpacialReconstructor {
   int n_domain_cells_;
 };
 
+/**
+ * @brief Second-order spacial reconstruction scheme using Total Variation
+ * Diminishing (TVD).
+ *
+ * @tparam SlopeLimiter Slope limiter function
+ */
 template <typename SlopeLimiter>
 class TvdSpacialReconstructor {
  public:
@@ -46,6 +68,12 @@ class TvdSpacialReconstructor {
       : n_boundary_cells_{params.n_bounary_cells},
         n_domain_cells_{params.n_domain_cells} {}
 
+  /**
+   * @brief Compute numerical flux at LHS of cell interfaces
+   *
+   * @param U Conservation variables
+   * @return Numerical flux at LHS of cells interfaces
+   */
   template <typename Derived>
   Eigen::MatrixXd calc_left(
       const Eigen::MatrixBase<Derived>& U) const noexcept {
@@ -73,6 +101,12 @@ class TvdSpacialReconstructor {
     return Ul;
   }
 
+  /**
+   * @brief Compute numerical flux at RHS of cell interfaces
+   *
+   * @param U Conservation variables
+   * @return Numerical flux at RHS of cells interfaces
+   */
   template <typename Derived>
   Eigen::MatrixXd calc_right(
       const Eigen::MatrixBase<Derived>& U) const noexcept {

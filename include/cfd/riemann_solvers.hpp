@@ -23,6 +23,9 @@ struct NegativeFlux {
 
 }  // namespace detail
 
+/**
+ * @brief Riemann solver using Flux Vector Splitting scheme.
+ */
 class StegerWarmingRiemannSolver {
  public:
   StegerWarmingRiemannSolver(const ProblemParameters& params)
@@ -31,11 +34,9 @@ class StegerWarmingRiemannSolver {
   /**
    * @brief Compute flux
    *
-   * @tparam Derived1
-   * @tparam Derived2
    * @param Ul Conservation variables at the LHS of cell interfaces
    * @param Ur Conservation variables at the RHS of cell interfaces
-   * @return Eigen::MatrixXd Flux at cell interfaces
+   * @return Flux at cell interfaces
    */
   template <typename Derived1, typename Derived2>
   Eigen::MatrixXd calc_flux(
@@ -49,10 +50,10 @@ class StegerWarmingRiemannSolver {
 
  private:
   /**
-   * @brief Compute positive numerical flux
+   * @brief Compute positive numerical
    *
-   * @param U Conservation variables vector at cell interfaces
-   * @return Eigen::MatrixXd Numerical flux vector
+   * @param U Conservation variables at cell interfaces
+   * @return Numerical flux
    */
   template <typename Derived, typename F>
   Eigen::MatrixXd calc_flux_impl(const Eigen::MatrixBase<Derived>& U,
@@ -90,19 +91,20 @@ class StegerWarmingRiemannSolver {
   double gamma_;  ///> Specific heat ratio
 };
 
+/**
+ * @brief Riemann solver using Flux Difference Splitting scheme.
+ */
 class RoeRiemannSolver {
  public:
   RoeRiemannSolver(const ProblemParameters& params)
       : gamma_{params.specific_heat_ratio} {}
 
   /**
-   * @brief Compute numerical flux vector
+   * @brief Compute numerical flux
    *
-   * @tparam Derived1
-   * @tparam Derived2
-   * @param Ul Conservation variables vector at the LHS of cell interfaces
-   * @param Ur Conservation variables vector at the RHS of cell interfaces
-   * @return Eigen::MatrixXd Numerical flux vector
+   * @param Ul Conservation variables at the LHS of cell interfaces
+   * @param Ur Conservation variables at the RHS of cell interfaces
+   * @return Numerical flux
    */
   template <typename Derived1, typename Derived2>
   Eigen::MatrixXd calc_flux(
