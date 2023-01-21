@@ -8,8 +8,8 @@ namespace cfd {
 /**
  * @brief Compute veolocity
  *
- * @param rho Density
- * @param rhou Momentum density
+ * @param[in] rho Density
+ * @param[in] rhou Momentum density
  * @return Velocity
  */
 template <typename Derived1, typename Derived2>
@@ -20,6 +20,7 @@ Eigen::ArrayXd calc_velocity(const Eigen::ArrayBase<Derived1>& rho,
 
 /**
  * @brief Compute Pressure
+ *
  * @param[in] rho Density
  * @param[in] u Velocity
  * @param[in] rhoE Total energy density
@@ -37,8 +38,8 @@ Eigen::ArrayXd calc_pressure(const Eigen::ArrayBase<Derived1>& rho,
 /**
  * @brief Compute sonic veolocity
  *
- * @param rho Density
- * @param p Pressure
+ * @param[in] rho Density
+ * @param[in] p Pressure
  * @return Sonic velocity
  */
 template <typename Derived1, typename Derived2>
@@ -51,13 +52,10 @@ Eigen::ArrayXd calc_sonic_velocity(const Eigen::ArrayBase<Derived1>& rho,
 /**
  * @brief Compute enthalpy
  *
- * @tparam Derived1
- * @tparam Derived2
- * @tparam Derived3
- * @param rho Density
- * @param rhoE Total energy density
- * @param p Pressure
- * @return Eigen::ArrayXd Enthalpy
+ * @param[in] rho Density
+ * @param[in] rhoE Total energy density
+ * @param[in] p Pressure
+ * @return Enthalpy
  */
 template <typename Derived1, typename Derived2, typename Derived3>
 Eigen::ArrayXd calc_enthalpy(const Eigen::ArrayBase<Derived1>& rho,
