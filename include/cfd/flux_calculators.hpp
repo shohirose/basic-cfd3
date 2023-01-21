@@ -48,20 +48,20 @@ class LaxWendroffFluxCalculator {
     const auto n = n_domain_cells_ + 1;
     const auto rng1 = seqN(i, n);
     const auto rng2 = seqN(i - 1, n);
+    const auto alpha = (0.5 * dt / dx_);
 
-    const ArrayXd rho_m = 0.5 * (rho(rng1) + rho(rng2)) -
-                          (0.5 * dt / dx_) * (rhou(rng1) - rhou(rng2));
-
+    const ArrayXd rho_m =
+        0.5 * (rho(rng1) + rho(rng2)) - alpha * (rhou(rng1) - rhou(rng2));
     const ArrayXd u = rhou / rho;
-    const ArrayXd p = (gamma_ - 1) * (rhoE - 0.5 * rho * u.square());
+    const ArrayXd p = calc_pressure(rho, u, rhoE, gamma_);
     const ArrayXd f = rhou * u + p;
-    const ArrayXd rhou_m = 0.5 * (rhou(rng1) + rhou(rng2)) -
-                           (0.5 * dt / dx_) * (f(rng1) - f(rng2));
+    const ArrayXd rhou_m =
+        0.5 * (rhou(rng1) + rhou(rng2)) - alpha * (f(rng1) - f(rng2));
     const ArrayXd g = u * (rhoE + p);
-    const ArrayXd rhoE_m = 0.5 * (rhoE(rng1) + rhoE(rng2)) -
-                           (0.5 * dt / dx_) * (g(rng1) - g(rng2));
+    const ArrayXd rhoE_m =
+        0.5 * (rhoE(rng1) + rhoE(rng2)) - alpha * (g(rng1) - g(rng2));
     const ArrayXd u_m = rhou_m / rho_m;
-    const ArrayXd p_m = (gamma_ - 1) * (rhoE_m - 0.5 * rho_m * u_m.square());
+    const ArrayXd p_m = calc_pressure(rho_m, u_m, rhoE_m, gamma_);
 
     MatrixXd F(n, 3);
     F.col(0) = rhou_m.matrix();
