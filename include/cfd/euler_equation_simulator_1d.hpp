@@ -29,14 +29,13 @@ class EulerEquationSimulator1d {
         timestep_{params} {}
 
   /**
-   * @brief Run a simulation case.
+   * @brief Run a simulation.
    *
-   * @tparam Derived
-   * @param V Primitive variables vector at the initial condition.
-   * @return Eigen::MatrixXd Primitive Variables vector at the end of time
+   * @param V Primitive variables at the initial condition.
+   * @return Primitive Variables at the end of simulation.
    * steps.
    *
-   * Primitive variables vector is defined by
+   * Primitive variables are defined by
    * @f[
    * \mathbf{V} =
    * \begin{bmatrix}
@@ -73,17 +72,11 @@ class EulerEquationSimulator1d {
   }
 
  private:
-  int total_cells() const noexcept {
-    return 2 * n_boundary_cells_ + n_domain_cells_;
-  }
-
   /**
-   * @brief Convert conservation variables vector to primitive variables vector.
+   * @brief Convert conservation variables to primitive variables.
    *
-   * @tparam Derived
-   * @param U Conservation variables vector
-   * @return Eigen::MatrixXd Primitive variables vector
-   *
+   * @param U Conservation variables
+   * @return Primitive variables
    */
   template <typename Derived>
   Eigen::MatrixXd to_primitive_vars(
@@ -102,12 +95,10 @@ class EulerEquationSimulator1d {
   }
 
   /**
-   * @brief Convert primitive varialbes vector to conservation variables vector.
+   * @brief Convert primitive varialbes to conservation variables.
    *
-   * @tparam Derived
-   * @param V Primitive variables vector
-   * @return Eigen::MatrixXd Conservation variables vector
-   *
+   * @param V Primitive variables
+   * @return Conservation variables
    */
   template <typename Derived>
   Eigen::MatrixXd to_conservation_vars(
@@ -128,15 +119,15 @@ class EulerEquationSimulator1d {
     return U;
   }
 
-  double dx_;                  ///> Grid length
-  double gamma_;               ///> Specific heat ratio
-  double tend_;                ///> End time of a simulation
-  int n_boundary_cells_;       ///> Number of boundary cells
-  int n_domain_cells_;         ///> Number of domain cells
-  NoFlowBoundary boundary_;    ///> Boundary condition
-  FluxCalculator flux_;        ///> Flux solver
-  TimeIntegrator integrator_;  ///> Time integration scheme
-  TimestepLengthCalculator timestep_;
+  double dx_;                          ///> Grid length
+  double gamma_;                       ///> Specific heat ratio
+  double tend_;                        ///> End time of a simulation
+  int n_boundary_cells_;               ///> Number of boundary cells
+  int n_domain_cells_;                 ///> Number of domain cells
+  NoFlowBoundary boundary_;            ///> Boundary condition
+  FluxCalculator flux_;                ///> Flux calculator
+  TimeIntegrator integrator_;          ///> Time integration scheme
+  TimestepLengthCalculator timestep_;  ///> Time step length calculator
 };
 
 }  // namespace cfd
