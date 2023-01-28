@@ -1,6 +1,5 @@
-# basic-cfd3: Basic CFD
-C++ source code for basic computational fluid dynamics.
-Problems are taken from [1].
+# 1-D Euler Equation
+C++ source code to solve one-dimensional Euler equation. Problems are taken from [1].
 
 1-D Euler equation is given by
 
@@ -8,7 +7,8 @@ $$
 \frac{\partial \mathbf{U}}{\partial t} + \frac{\partial \mathbf{F}}{\partial x} = 0
 $$
 
-where $\mathbf{U}$ is conservative variable, and $\mathbf{F}$ is flux function. $\mathbf{U}$ and $\mathbf{F}$ are given by
+where $\mathbf{U}$ is conservative variable, and $\mathbf{F}$ is flux function.
+$\mathbf{U}$ and $\mathbf{F}$ are given by
 
 $$
 \mathbf{U} = 
