@@ -11,16 +11,9 @@ FetchContent_Declare(
 set(EIGEN_BUILD_DOC OFF CACHE BOOL "" FORCE)
 set(EIGEN_BUILD_PKGCONFIG OFF CACHE BOOL "" FORCE)
 
-# FetchContent_Declare(
-#     fmt
-#     URL https://github.com/fmtlib/fmt/releases/download/9.1.0/fmt-9.1.0.zip
-#     DOWNLOAD_EXTRACT_TIMESTAMP ON
-#     )
-
 FetchContent_MakeAvailable(Eigen)
-# FetchContent_MakeAvailable(fmt)
 
-project(basic-cfd3 CXX)
+project(euler-equation-1d CXX)
 
 add_library(cfd
     INTERFACE
